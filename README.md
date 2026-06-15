@@ -2,9 +2,8 @@
 ## Запуск приложения  
 
 1. `git clone -b sprint-1 https://github.com/TuringMac/EventPlatform`  
-2. `cd .\EventPlatform\EventPlatform`  
-3. `dotnet run`  
-4. `https://localhost:7068`  
+2. `dotnet run --project .\EventPlatform\EventPlatform\EventPlatform.Api --launch-profile "https"`  
+3. `https://localhost:7068`  
 
 
 
