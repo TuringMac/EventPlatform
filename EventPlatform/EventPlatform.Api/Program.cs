@@ -1,10 +1,22 @@
+using EventPlatform.Api.Application;
+using EventPlatform.Api.Infrastructure;
+using EventPlatform.Api.Presentation;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddPresentation();
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Host.UseDefaultServiceProvider(options =>
+    {
+        options.ValidateScopes = true;
+        options.ValidateOnBuild = true;
+    });
+}
 
 var app = builder.Build();
 
