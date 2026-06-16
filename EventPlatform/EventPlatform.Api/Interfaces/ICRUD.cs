@@ -2,13 +2,9 @@
 
 namespace EventPlatform.Api.Interfaces
 {
-    public interface ICRUD<T>
+    public interface ICRUD<T> : IRead<T>, IWrite<T>
         where T : IEntity
     {
-        IEnumerable<T> GetAll();
-        T GetById(Guid id);
-        void Add(T obj);
-        void Update(Guid id, T obj);
-        void Delete(Guid id);
+
     }
 }
