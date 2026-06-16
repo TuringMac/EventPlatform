@@ -65,11 +65,31 @@ public class EventsController(IEventService _eventService) : ControllerBase
 
     // QUESTION: Стандартизированный результат это же всегда HTTP 200 и без Location заголовка?
     [HttpPost]
-    public ApiResult Post([FromBody] Event value)
+    public ApiResult Post([FromBody] EventDto value)
     {
         try
         {
-            _eventService.Add(value);
+            if (!TryValidateModel(value))
+            {
+                return new ApiResult
+                {
+                    Success = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Message = $"Не удалось добавить мероприятие"
+                };
+                //return BadRequest(ModelState);
+            }
+
+            var evt = new Event
+            {
+                Id = value.Id,
+                Title = value.Title,
+                Description = value.Description,
+                StartAt = value.StartAt,
+                EndAt = value.EndAt,
+            };
+
+            _eventService.Add(evt);
             return new ApiResult
             {
                 Success = true,
@@ -93,11 +113,32 @@ public class EventsController(IEventService _eventService) : ControllerBase
 
     // QUESTION: Как быть, если в URL один Id, а в теле value.Id другой?
     [HttpPut("{id:guid}")]
-    public ApiResult Put(Guid id, [FromBody] Event value)
+    public ApiResult Put(Guid id, [FromBody] EventDto value)
     {
+
         try
         {
-            _eventService.Update(id, value);
+            if (!TryValidateModel(value))
+            {
+                return new ApiResult
+                {
+                    Success = false,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Message = $"Не удалось добавить мероприятие"
+                };
+                //return BadRequest(ModelState);
+            }
+
+            var evt = new Event
+            {
+                Id = value.Id,
+                Title = value.Title,
+                Description = value.Description,
+                StartAt = value.StartAt,
+                EndAt = value.EndAt,
+            };
+
+            _eventService.Update(id, evt);
 
             return new ApiResult
             {
