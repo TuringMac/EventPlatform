@@ -35,7 +35,7 @@ public class EventsController(IEventService _eventService) : ControllerBase
     [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpGet("{id:guid}")]
-    public ApiBaseResult GetById(Guid id)
+    public ActionResult<ApiBaseResult> GetById(Guid id)
     {
         // Пытаемся получить мероприятие по индексу из коллекции
         try
@@ -54,29 +54,28 @@ public class EventsController(IEventService _eventService) : ControllerBase
         catch (KeyNotFoundException ex)
         {
             // В случае ошибки возвращаем неуспешный результат со статусом Not Found
-            return new ApiResult
+            return NotFound(new ApiResult
             {
                 Success = false,
                 StatusCode = HttpStatusCode.NotFound,
                 Message = $"Не удалось найти мероприятие по индексу: {ex.Message}"
-            };
+            });
         }
     }
 
-    // QUESTION: Стандартизированный результат это же всегда HTTP 200 и без Location заголовка?
     [HttpPost]
-    public ApiResult Post([FromBody] EventDto value)
+    public ActionResult<ApiResult> Post([FromBody] EventDto value)
     {
         try
         {
             if (!TryValidateModel(value))
             {
-                return new ApiResult
+                return BadRequest(new ApiResult
                 {
                     Success = false,
                     StatusCode = HttpStatusCode.BadRequest,
                     Message = $"Не удалось добавить мероприятие"
-                };
+                });
                 //return BadRequest(ModelState);
             }
 
@@ -90,42 +89,39 @@ public class EventsController(IEventService _eventService) : ControllerBase
             };
 
             _eventService.Add(evt);
-            return new ApiResult
+            return CreatedAtAction(nameof(GetById), new { id = evt.Id }, new ApiResult
             {
                 Success = true,
                 StatusCode = HttpStatusCode.Created,
                 Message = "Добавляем мероприятие в коллекцию и возвращаем HTTP 201 Created"
-            };
+            });
         }
         catch (Exception ex)
         {
             // В случае ошибки возвращаем неуспешный результат со статусом Not Found
-            return new ApiResult
+            return BadRequest(new ApiResult
             {
                 Success = false,
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = $"Не удалось добавить мероприятие: {ex.Message}"
-            };
+            });
         }
-        // QUESTION: Так как же лучше? Created сам добавит заголовок Location
-        //return Created(nameof(GetById), new { id = value.Id }, value);
     }
 
     // QUESTION: Как быть, если в URL один Id, а в теле value.Id другой?
     [HttpPut("{id:guid}")]
-    public ApiResult Put(Guid id, [FromBody] EventDto value)
+    public ActionResult<ApiResult> Put(Guid id, [FromBody] EventDto value)
     {
-
         try
         {
             if (!TryValidateModel(value))
             {
-                return new ApiResult
+                return BadRequest(new ApiResult
                 {
                     Success = false,
                     StatusCode = HttpStatusCode.BadRequest,
                     Message = $"Не удалось добавить мероприятие"
-                };
+                });
                 //return BadRequest(ModelState);
             }
 
@@ -140,47 +136,47 @@ public class EventsController(IEventService _eventService) : ControllerBase
 
             _eventService.Update(id, evt);
 
-            return new ApiResult
+            return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
             {
                 Success = true,
                 StatusCode = HttpStatusCode.NoContent,
                 Message = "Обновляем данные мероприятия в коллекции по индексу и возвращаем HTTP 204 No Content"
-            };
+            });
         }
         catch (KeyNotFoundException ex)
         {
             // В случае ошибки возвращаем неуспешный результат со статусом Not Found
-            return new ApiResult
+            return NotFound(new ApiResult
             {
                 Success = false,
                 StatusCode = HttpStatusCode.NotFound,
                 Message = $"Не удалось найти мероприятие по индексу: {ex.Message}"
-            };
+            });
         }
     }
 
     [HttpDelete("{id:guid}")]
-    public ApiResult Delete(Guid id)
+    public ActionResult<ApiResult> Delete(Guid id)
     {
         try
         {
             _eventService.Delete(id);
-            return new ApiResult
+            return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
             {
                 Success = true,
                 StatusCode = HttpStatusCode.NoContent,
                 Message = "Мероприятие удалено из базы"
-            };
+            });
         }
         catch (KeyNotFoundException ex)
         {
             // В случае ошибки возвращаем неуспешный результат со статусом Not Found
-            return new ApiResult
+            return NotFound(new ApiResult
             {
                 Success = false,
                 StatusCode = HttpStatusCode.NotFound,
                 Message = $"Не удалось найти мероприятие по индексу: {ex.Message}"
-            };
+            });
         }
     }
 }
