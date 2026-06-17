@@ -108,13 +108,12 @@ public class EventsController(IEventService _eventService) : ControllerBase
         }
     }
 
-    // QUESTION: Как быть, если в URL один Id, а в теле value.Id другой?
     [HttpPut("{id:guid}")]
     public ActionResult<ApiResult> Put(Guid id, [FromBody] EventDto value)
     {
         try
         {
-            if (!TryValidateModel(value))
+            if (!TryValidateModel(value) || id != value.Id)
             {
                 return BadRequest(new ApiResult
                 {
