@@ -2,7 +2,7 @@
 ## Запуск приложения  
 
 1. `git clone -b sprint-1 https://github.com/TuringMac/EventPlatform`  
-2. Linux-style `dotnet run --project ./EventPlatform/EventPlatform/EventPlatform.Api --launch-profile "https"`  
+2. Linux-style `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
 3. API https://localhost:7068  
 4. Swagger https://localhost:7068/swagger/index.html  
 
