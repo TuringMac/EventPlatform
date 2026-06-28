@@ -17,16 +17,29 @@ public class EventService(IEventStorage _context) : IEventService
         _context.Delete(id);
     }
 
-    public IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to)
+    public PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
     {
+        int safePage = page ?? 1;
+        int safePageSize = pageSize ?? 10;
+
         IEnumerable<Event> events = _context.GetAll();
+        // Фильтрация
         if (!string.IsNullOrWhiteSpace(title))
             events = events.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
-        if (from > DateTime.MinValue)
+        if (from.HasValue && from > DateTime.MinValue)
             events = events.Where(e => e.StartAt >= from);
-        if (to < DateTime.MaxValue)
+        if (to.HasValue && to < DateTime.MaxValue)
             events = events.Where(e => e.EndAt <= to);
-        return events;
+
+        // Пагинация
+        int totalAmount = events.Count();
+        if (safePageSize < 10)
+            safePageSize = 10;
+        if (safePage < 1)
+            safePage = 1;
+        events = events.Skip((safePage - 1) * safePageSize).Take(safePageSize);
+
+        return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = events.Count(), TotalItems = totalAmount };
     }
 
     public Event GetById(Guid id)

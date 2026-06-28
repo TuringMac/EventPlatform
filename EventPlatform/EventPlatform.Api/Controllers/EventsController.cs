@@ -13,11 +13,11 @@ public class EventsController(IEventService _eventService) : ControllerBase
 {
     // CancellationToken как заметка для себя, что так можно получить
     [HttpGet]
-    public ApiResult<IEnumerable<Event>> Get(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to)
+    public ApiResult<PaginatedResult<Event>> Get(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to, int? page, int? pageSize)
     {
-        return new ApiResult<IEnumerable<Event>>
+        return new ApiResult<PaginatedResult<Event>>
         {
-            Data = _eventService.GetAll(title, from, to),
+            Data = _eventService.GetAll(title, from, to, page, pageSize),
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем все мероприятия из коллекции"
