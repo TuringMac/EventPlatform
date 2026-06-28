@@ -3,38 +3,46 @@ using EventPlatform.Api.Model;
 
 namespace EventPlatform.Api.Storage;
 
-public class InMemoryStorage : IStorage
+public class InMemoryStorage : IEventStorage
 {
-    List<Event> events { get; } = new List<Event>();
-    public void AddEvent(Event obj)
+    List<Event> _events { get; } = new List<Event>();
+
+    public InMemoryStorage()
     {
-        events.Add(obj);
+        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Квадроциклы", StartAt = DateTime.Parse("2026-06-30 12:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
+        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Велосипеды", StartAt = DateTime.Parse("2026-07-01 11:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
+        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Футбол", StartAt = DateTime.Parse("2026-07-01 10:00"), EndAt = DateTime.Parse("2026-07-01 16:00") });
     }
 
-    public bool DeleteEvent(Guid id)
+    public void Add(Event obj)
     {
-        var obj = events.FirstOrDefault(e => e.Id == id);
+        _events.Add(obj);
+    }
+
+    public void Delete(Guid id)
+    {
+        var obj = _events.FirstOrDefault(e => e.Id == id);
         if (obj == null)
             throw new KeyNotFoundException($"Мероприятие с ID {id} не найдено");
-        return events.Remove(obj);
+        _events.Remove(obj);
     }
 
-    public IEnumerable<Event> GetAllEvents()
+    public IEnumerable<Event> GetAll()
     {
-        return events;
+        return _events;
     }
 
-    public Event GetEventById(Guid id)
+    public Event GetById(Guid id)
     {
-        var @event= events.FirstOrDefault(e => e.Id == id);
-        if(@event==null)
+        var @event = _events.FirstOrDefault(e => e.Id == id);
+        if (@event == null)
             throw new KeyNotFoundException($"Мероприятие с ID {id} не найдено");
         return @event;
     }
 
-    public Event UpdateEvent(Guid id, Event newObj)
+    public void Update(Guid id, Event newObj)
     {
-        var oldObj = events.FirstOrDefault(e => e.Id == id);
+        var oldObj = _events.FirstOrDefault(e => e.Id == id);
         if (oldObj == null)
             throw new KeyNotFoundException($"Мероприятие с ID {id} не найдено");
 
@@ -42,6 +50,5 @@ public class InMemoryStorage : IStorage
         oldObj.Description = newObj.Description;
         oldObj.StartAt = newObj.StartAt;
         oldObj.EndAt = newObj.EndAt;
-        return oldObj;
     }
 }

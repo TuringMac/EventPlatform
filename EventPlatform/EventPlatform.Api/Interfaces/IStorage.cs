@@ -2,12 +2,8 @@
 
 namespace EventPlatform.Api.Interfaces;
 
-public interface IStorage
+public interface IStorage<T> : ICRUD<T>
+    where T : IEntity
 {
-    IEnumerable<Event> GetAllEvents();
-    Event GetEventById(Guid id);
-    void AddEvent(Event obj);
-    Event UpdateEvent(Guid id, Event obj);
-    bool DeleteEvent(Guid id);
 
 }
