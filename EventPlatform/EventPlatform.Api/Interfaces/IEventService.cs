@@ -8,4 +8,5 @@ public interface IEventService
     IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to);
     Event GetById(Guid id);
     void Update(Guid id, Event obj);
+    void Delete(Guid id);
 }

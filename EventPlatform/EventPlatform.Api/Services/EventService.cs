@@ -17,9 +17,16 @@ public class EventService(IEventStorage _context) : IEventService
         _context.Delete(id);
     }
 
-    public IEnumerable<Event> GetAll()
+    public IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to)
     {
-        return _context.GetAllEvents();
+        IEnumerable<Event> events = _context.GetAll();
+        if (!string.IsNullOrWhiteSpace(title))
+            events = events.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+        if (from > DateTime.MinValue)
+            events = events.Where(e => e.StartAt >= from);
+        if (to < DateTime.MaxValue)
+            events = events.Where(e => e.EndAt <= to);
+        return events;
     }
 
     public Event GetById(Guid id)

@@ -8,7 +8,7 @@ namespace EventPlatform.Api.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             // База данных
-            services.AddSingleton<IStorage, InMemoryStorage>();
+            services.AddSingleton<IEventStorage, InMemoryStorage>();
 
             return services;
         }

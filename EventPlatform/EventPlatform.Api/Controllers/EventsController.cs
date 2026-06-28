@@ -11,13 +11,13 @@ namespace EventPlatform.Api.Controllers;
 [ApiController]
 public class EventsController(IEventService _eventService) : ControllerBase
 {
-    [ResponseCache(Duration = 60)]
+    // CancellationToken как заметка для себя, что так можно получить
     [HttpGet]
-    public ApiResult<IEnumerable<Event>> Get(CancellationToken cancellationToken)
+    public ApiResult<IEnumerable<Event>> Get(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to)
     {
         return new ApiResult<IEnumerable<Event>>
         {
-            Data = _eventService.GetAll(),
+            Data = _eventService.GetAll(title, from, to),
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем все мероприятия из коллекции"
@@ -34,6 +34,7 @@ public class EventsController(IEventService _eventService) : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ResponseCache(Duration = 60)]
     [HttpGet("{id:guid}")]
     public ActionResult<ApiBaseResult> GetById(Guid id)
     {
