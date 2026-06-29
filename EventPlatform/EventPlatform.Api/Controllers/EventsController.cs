@@ -9,7 +9,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class EventsController(IEventService _eventService) : ControllerBase
+public class EventsController(IEventService _eventService, ILogger<EventsController> _logger) : ControllerBase
 {
     // CancellationToken как заметка для себя, что так можно получить
     [HttpGet]
@@ -59,7 +59,7 @@ public class EventsController(IEventService _eventService) : ControllerBase
             StartAt = value.StartAt,
             EndAt = value.EndAt,
         };
-
+        _logger.LogDebug("DTO сконвертирован");
         _eventService.Add(evt);
         return CreatedAtAction(nameof(GetById), new { id = evt.Id }, new ApiResult
         {
@@ -82,7 +82,7 @@ public class EventsController(IEventService _eventService) : ControllerBase
         };
 
         _eventService.Update(id, evt);
-
+        _logger.LogDebug("Событие {Id} обновлено", evt.Id);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
@@ -95,6 +95,7 @@ public class EventsController(IEventService _eventService) : ControllerBase
     public ActionResult<ApiResult> Delete(Guid id)
     {
         _eventService.Delete(id);
+        _logger.LogDebug("Событие {Id} удалено", id);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,

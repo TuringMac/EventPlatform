@@ -1,12 +1,14 @@
 ﻿using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
 using EventPlatform.Api.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace EventPlatform.Tests;
 
 public class EventServiceTest
 {
+    private readonly Mock<ILogger<EventService>> _logger;
     private readonly Mock<IEventStorage> _eventStorageMock;
     private readonly IEventService _eventService;
     private readonly IEnumerable<Event> _events;
@@ -46,6 +48,7 @@ public class EventServiceTest
             },
         ];
 
+        _logger = new Mock<ILogger<EventService>>();
         _eventStorageMock = new Mock<IEventStorage>();
         _eventStorageMock.Setup(storage => storage.GetAll()).Returns(() => _events);
         _eventStorageMock.Setup(storage => storage.Delete(It.IsAny<Guid>())).Callback<Guid>(id =>
@@ -67,7 +70,7 @@ public class EventServiceTest
                 throw new KeyNotFoundException();
             return evt;
         });
-        _eventService = new EventService(_eventStorageMock.Object);
+        _eventService = new EventService(_eventStorageMock.Object, _logger.Object);
     }
 
     [Fact]

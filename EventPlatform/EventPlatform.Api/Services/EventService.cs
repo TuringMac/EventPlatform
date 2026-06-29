@@ -3,7 +3,7 @@ using EventPlatform.Api.Model;
 
 namespace EventPlatform.Api.Services;
 
-public class EventService(IEventStorage _context) : IEventService
+public class EventService(IEventStorage _context, ILogger<EventService> _logger) : IEventService
 {
     public void Add(Event obj)
     {
@@ -37,8 +37,9 @@ public class EventService(IEventStorage _context) : IEventService
         if (safePage < 1)
             safePage = 1;
         events = events.Skip((safePage - 1) * safePageSize).Take(safePageSize);
-
-        return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = events.Count(), TotalItems = totalAmount };
+        var pageItems = events.Count();
+        _logger.LogInformation("Query filtered: {totalAmount}; Items on page {pageItems}", totalAmount, pageItems);
+        return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = pageItems, TotalItems = totalAmount };
     }
 
     public Event GetById(Guid id)
@@ -56,5 +57,6 @@ public class EventService(IEventStorage _context) : IEventService
     {
         if (obj.StartAt > obj.EndAt)
             throw new ArgumentException(nameof(obj.EndAt), "Дата окончания не может быть раньше даты начала.");
+        _logger.LogInformation("Event validated: {Title}, StartAt: {StartAt}, EndAt: {EndAt}", obj.Title, obj.StartAt, obj.EndAt);
     }
 }
