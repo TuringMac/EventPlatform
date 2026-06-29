@@ -1,11 +1,12 @@
 # Event Platform  
 ## Запуск приложения  
 
-1. `git clone -b sprint-2 https://github.com/TuringMac/EventPlatform`  
-2. Linux-style `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
-3. API https://localhost:7068  
-4. Swagger https://localhost:7068/swagger/index.html  
-5. Тестирование `dotnet test ./EventPlatform/EventPlatform.Tests`  
+1. Получение `git clone -b sprint-2 https://github.com/TuringMac/EventPlatform`  
+2. Сборка `dotnet build ./EventPlatform/EventPlatform.Api`  
+3. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
+4. API https://localhost:7068  
+5. Swagger https://localhost:7068/swagger/index.html  
+6. Тестирование `dotnet test ./EventPlatform/EventPlatform.Tests`  
 
 ## Описание API  
 ### Endpoints
