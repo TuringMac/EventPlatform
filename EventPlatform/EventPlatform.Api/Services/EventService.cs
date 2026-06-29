@@ -49,7 +49,7 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
     public void Update(Guid id, Event obj)
     {
-        ValidateEvent(obj);
+        ValidateEvent(id, obj);
         _context.Update(id, obj);
     }
 
@@ -58,5 +58,12 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
         if (obj.StartAt > obj.EndAt)
             throw new ArgumentException(nameof(obj.EndAt), "Дата окончания не может быть раньше даты начала.");
         _logger.LogInformation("Event validated: {Title}, StartAt: {StartAt}, EndAt: {EndAt}", obj.Title, obj.StartAt, obj.EndAt);
+    }
+
+    void ValidateEvent(Guid id, Event obj)
+    {
+        if (!Equals(id, obj.Id))
+            throw new ArgumentException(nameof(obj.Id), "Id in the URL does not match Id in the body.");
+        ValidateEvent(obj);
     }
 }

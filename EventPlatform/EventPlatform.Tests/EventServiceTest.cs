@@ -60,8 +60,6 @@ public class EventServiceTest
         {
             if (!_events.Any(e => e.Id == id))
                 throw new KeyNotFoundException();
-            if (!Equals(id, obj.Id))
-                throw new ArgumentException(nameof(obj.Id), "Id in the URL does not match Id in the body.");
         });
         _eventStorageMock.Setup(storage => storage.GetById(It.IsAny<Guid>())).Returns<Guid>(id =>
         {
@@ -138,6 +136,23 @@ public class EventServiceTest
 
         // Assert
         _eventStorageMock.Verify(storage => storage.Update(testEvent1Gid, evt), Times.Once);
+    }
+
+    [Fact]
+    public void UpdateEvent_DifferentIds_ThrowsArgumentException()
+    {
+        // Arrange
+        var evt = new Event
+        {
+            Id = Guid.NewGuid(),
+            Title = "Test Event 1 Updated",
+            Description = "This is a test event",
+            StartAt = testEvent1StartAt,
+            EndAt = testEvent1EndAt,
+        };
+
+        // Act // Assert
+        Assert.Throws<ArgumentException>(() => _eventService.Update(testEvent1Gid, evt));
     }
 
     [Fact]
