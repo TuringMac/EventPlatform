@@ -1,0 +1,290 @@
+﻿using EventPlatform.Api.Interfaces;
+using EventPlatform.Api.Model;
+using EventPlatform.Api.Services;
+using Moq;
+
+namespace EventPlatform.Tests;
+
+public class EventServiceTest
+{
+    private readonly Mock<IEventStorage> _eventStorageMock;
+    private readonly IEventService _eventService;
+    private readonly IEnumerable<Event> _events;
+    private readonly Guid testEvent1Gid;
+    private readonly DateTime testEvent1StartAt;
+    private readonly DateTime testEvent1EndAt;
+    private readonly Guid testEvent2Gid;
+    private readonly DateTime testEvent2StartAt;
+    private readonly DateTime testEvent2EndAt;
+
+    public EventServiceTest()
+    {
+        testEvent1Gid = Guid.Parse("B6780633-10B5-40DF-B129-B7A01D6F7EE6");
+        testEvent1StartAt = new DateTime(2026, 04, 01, 10, 0, 0);
+        testEvent1EndAt = new DateTime(2026, 04, 01, 12, 0, 0);
+
+        testEvent2Gid = Guid.Parse("3F04F96B-FA2A-46DF-81E8-F44E006B8271");
+        testEvent2StartAt = new DateTime(2026, 04, 02, 16, 0, 0);
+        testEvent2EndAt = new DateTime(2026, 04, 02, 18, 0, 0);
+
+        _events = [
+            new Event
+            {
+                Id = testEvent1Gid,
+                Title = "Test Event 1",
+                Description = "This is a test event",
+                StartAt = testEvent1StartAt,
+                EndAt = testEvent1EndAt,
+            },
+            new Event
+            {
+                Id = testEvent2Gid,
+                Title = "Test Event 2",
+                Description = "This is a test event",
+                StartAt = testEvent2StartAt,
+                EndAt = testEvent2EndAt,
+            },
+        ];
+
+        _eventStorageMock = new Mock<IEventStorage>();
+        _eventStorageMock.Setup(storage => storage.GetAll()).Returns(() => _events);
+        _eventStorageMock.Setup(storage => storage.Delete(It.IsAny<Guid>())).Callback<Guid>(id =>
+        {
+            if (!_events.Any(e => e.Id == id))
+                throw new KeyNotFoundException();
+        });
+        _eventStorageMock.Setup(storage => storage.Update(It.IsAny<Guid>(), It.IsAny<Event>())).Callback<Guid, Event>((id, obj) =>
+        {
+            if (!_events.Any(e => e.Id == id))
+                throw new KeyNotFoundException();
+            if (!Equals(id, obj.Id))
+                throw new ArgumentException(nameof(obj.Id), "Id in the URL does not match Id in the body.");
+        });
+        _eventStorageMock.Setup(storage => storage.GetById(It.IsAny<Guid>())).Returns<Guid>(id =>
+        {
+            var evt = _events.FirstOrDefault(e => e.Id == id);
+            if (evt == null)
+                throw new KeyNotFoundException();
+            return evt;
+        });
+        _eventService = new EventService(_eventStorageMock.Object);
+    }
+
+    [Fact]
+    public void CreateEvent_ShouldCallAddOnce()
+    {
+        // Arrange
+        var evt = new Event
+        {
+            Id = Guid.NewGuid(),
+            Title = "Test Event to create",
+            Description = "This is a test event",
+            StartAt = DateTime.UtcNow.AddHours(-1),
+            EndAt = DateTime.UtcNow.AddHours(1),
+        };
+
+        // Act
+        _eventService.Add(evt);
+
+        // Assert
+        _eventStorageMock.Verify(storage => storage.Add(evt), Times.Once);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void GetAllEvents_ShouldReturnAllTestEvents()
+    {
+        // Arrange
+
+        // Act
+        var result = _eventService.GetAll(null, null, null);
+
+        // Assert
+        Assert.Equal(_events.Count(), result.Data.Count());
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void GetEventById_ReturnsOneCertainEvent()
+    {
+        // Arrange
+        var evtToReturn = _events.First();
+
+        // Act
+        var result = _eventService.GetById(testEvent1Gid);
+
+        // Assert
+        Assert.Equal(evtToReturn.Id, result.Id);
+    }
+
+    [Fact]
+    public void UpdateEvent_ShouldCallUpdateOnce()
+    {
+        // Arrange
+        var evt = new Event
+        {
+            Id = testEvent1Gid,
+            Title = "Test Event 1 Updated",
+            Description = "This is a test event",
+            StartAt = testEvent1StartAt,
+            EndAt = testEvent1EndAt,
+        };
+
+        // Act
+        _eventService.Update(testEvent1Gid, evt);
+
+        // Assert
+        _eventStorageMock.Verify(storage => storage.Update(testEvent1Gid, evt), Times.Once);
+    }
+
+    [Fact]
+    public void DeleteEvent_ShouldCallDeleteOnce()
+    {
+        // Arrange
+
+        // Act
+        _eventService.Delete(testEvent1Gid);
+
+        // Assert
+        _eventStorageMock.Verify(storage => storage.Delete(testEvent1Gid), Times.Once);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void FilterEventByName()
+    {
+        // Arrange
+        var title = "Test Event 1";
+
+        // Act
+        var evt = _eventService.GetAll(title, null, null).Data.Single();
+
+        // Assert
+        Assert.Equal(testEvent1Gid, evt.Id);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void FilterEventByDate_ShouldReturnOneEventInBothProbes()
+    {
+        // Arrange
+        var from = testEvent2StartAt.AddHours(-1);
+        var to = testEvent1EndAt.AddHours(1);
+
+        // Act // Assert
+        Assert.Single(_eventService.GetAll(null, from, null).Data);
+        Assert.Single(_eventService.GetAll(null, null, to).Data);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void EventPagination_ReturnsPaginatedResult()
+    {
+        // Arrange
+        int pageNum = 1;
+        int pageSize = 10;
+
+        // Act
+        var pagination = _eventService.GetAll(null, null, null, pageNum, pageSize);
+
+        // Assert
+        Assert.Equal(_events.Count(), pagination.Data.Count());
+        Assert.Equal(_events.Count() % pageSize, pagination.PageItems);
+        Assert.Equal(_events.Count(), pagination.TotalItems);
+        Assert.Equal(pageNum, pagination.CurrentPage);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void CombinedFilterEvent_ReturnsFilteredResultByTwoFields()
+    {
+        // Arrange
+        var title = "1";
+        var to = testEvent1EndAt.AddHours(1);
+
+        // Act
+        var pagination = _eventService.GetAll(title, null, to);
+
+        // Assert
+        Assert.Single(pagination.Data);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void CombinedFilterEventAnd_ReturnsEmptyResultByTwoFields()
+    {
+        // Arrange
+        var title = "test";
+        var from = testEvent2EndAt.AddHours(1);
+
+        // Act
+        var pagination = _eventService.GetAll(title, from, null);
+
+        // Assert
+        Assert.Empty(pagination.Data);
+    }
+
+    [Trait("Category", "Get")]
+    [Fact]
+    public void GetNonExistedEventById_ThrowNotFoundException()
+    {
+        // Arrange
+        var gid = Guid.NewGuid();
+
+        // Act // Assert
+        Assert.Throws<KeyNotFoundException>(() => _eventService.GetById(gid));
+    }
+
+    [Fact]
+    public void UpdateNonExistedEvent_ThrowsNotFoundException()
+    {
+        // Arrange
+        var gid = Guid.NewGuid();
+        var evt = new Event
+        {
+            Id = gid,
+            Title = "Test",
+            Description = "Test",
+            StartAt = DateTime.Now,
+            EndAt = DateTime.Now,
+        };
+
+        // Act // Assert
+        Assert.Throws<KeyNotFoundException>(() => _eventService.Update(gid, evt));
+    }
+
+    [Fact]
+    public void CreateEventWithInvalidParams_ThrowsArgumentException()
+    {
+        // Arrange
+        var gid = Guid.NewGuid();
+        var evt = new Event
+        {
+            Id = gid,
+            Title = "Test",
+            Description = "Test",
+            StartAt = DateTime.Now.AddHours(1),
+            EndAt = DateTime.Now.AddHours(-1),
+        };
+
+        // Act // Assert
+        Assert.Throws<ArgumentException>(() => _eventService.Add(evt));
+    }
+
+    [Fact]
+    public void UpdateEventWithInvalidParams_ThrowsArgumentException()
+    {
+        // Arrange
+        var evt = new Event
+        {
+            Id = testEvent1Gid,
+            Title = "Test",
+            Description = "Test",
+            StartAt = DateTime.Now.AddHours(1),
+            EndAt = DateTime.Now.AddHours(-1),
+        };
+
+        // Act // Assert
+        Assert.Throws<ArgumentException>(() => _eventService.Update(testEvent1Gid, evt));
+    }
+}

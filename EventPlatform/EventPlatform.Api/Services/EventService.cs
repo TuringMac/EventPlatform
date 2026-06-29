@@ -7,8 +7,7 @@ public class EventService(IEventStorage _context) : IEventService
 {
     public void Add(Event obj)
     {
-        if (obj.StartAt > obj.EndAt)
-            throw new ArgumentOutOfRangeException(nameof(obj.EndAt), "Дата окончания не может быть раньше даты начала.");
+        ValidateEvent(obj);
         _context.Add(obj);
     }
 
@@ -49,6 +48,13 @@ public class EventService(IEventStorage _context) : IEventService
 
     public void Update(Guid id, Event obj)
     {
+        ValidateEvent(obj);
         _context.Update(id, obj);
+    }
+
+    void ValidateEvent(Event obj)
+    {
+        if (obj.StartAt > obj.EndAt)
+            throw new ArgumentException(nameof(obj.EndAt), "Дата окончания не может быть раньше даты начала.");
     }
 }
