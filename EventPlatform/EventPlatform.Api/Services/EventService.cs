@@ -32,8 +32,8 @@ public class EventService(IEventStorage _context) : IEventService
 
         // Пагинация
         int totalAmount = events.Count();
-        if (safePageSize < 10)
-            safePageSize = 10;
+        if (safePageSize < 1)
+            safePageSize = 1;
         if (safePage < 1)
             safePage = 1;
         events = events.Skip((safePage - 1) * safePageSize).Take(safePageSize);
