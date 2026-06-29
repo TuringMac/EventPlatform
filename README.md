@@ -1,19 +1,27 @@
 # Event Platform  
 ## Запуск приложения  
 
-1. `git clone -b sprint-1 https://github.com/TuringMac/EventPlatform`  
+1. `git clone -b sprint-2 https://github.com/TuringMac/EventPlatform`  
 2. Linux-style `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
 3. API https://localhost:7068  
 4. Swagger https://localhost:7068/swagger/index.html  
+5. Тестирование `dotnet test ./EventPlatform/EventPlatform.Tests`  
 
 ## Описание API  
+### Endpoints
 GET `/api/events` Получение списка всех мероприятий в базе  
+&emsp;Query параметры:  
+&emsp;`title` - фильтр по заголовку (опционально)  
+&emsp;`from` - фильтр событий с началом позже даты (опционально)  
+&emsp;`to` - фильтр событий с концом до даты (опционально)  
+&emsp;`page` - номер страницы (опционально 1)  
+&emsp;`pageSize` - размер страницы (опционально 10)  
 GET `/api/events/{id:guid}` Получение подробной информации по выбранному мероприятию  
 POST `/api/events` Добавление мероприятия в базу  
 PUT `/api/events/{id:guid}` Обновление информации по мероприятию  
 DELETE `/api/events/{id:guid}` Удаление мероприятия из базы  
 
-Вывод структурирован моделью  
+### Вывод структурирован моделью  
 
 ```json
 {
@@ -25,7 +33,16 @@ DELETE `/api/events/{id:guid}` Удаление мероприятия из ба
 }
 ```  
 
+### Формат ошибок
+Формат ошибок стандартизирован Problem Details (RFC 7807)  
+
  ## Changelog  
+### Sprint-2
+ - Написаны тесты  
+ - Пагинация  
+ - Фильтрация данных  
+ - Глобальная обработка ошибок через middleware  
+### Sprint-1  
  - Добавлена валидация Id запроса и Id модели при обновлении ресурса
  - Исправлена валидация StartAt, EndAt
  - Маршруты API актуализированы в документации
