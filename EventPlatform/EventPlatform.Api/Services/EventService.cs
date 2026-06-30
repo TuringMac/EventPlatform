@@ -13,6 +13,7 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
     public void Delete(Guid id)
     {
+        ValidateGuid(id);
         _context.Delete(id);
     }
 
@@ -45,8 +46,7 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
     public Event GetById(Guid id)
     {
-        if (Equals(id, Guid.Empty))
-            throw new ArgumentException($"{id} не может быть пустым", nameof(id));
+        ValidateGuid(id);
         return _context.GetById(id);
     }
 
@@ -65,8 +65,15 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
     void ValidateEvent(Guid id, Event obj)
     {
+        ValidateGuid(id);
         if (!Equals(id, obj.Id))
             throw new ArgumentException("Id in the URL does not match Id in the body.", nameof(obj.Id));
         ValidateEvent(obj);
+    }
+
+    void ValidateGuid(Guid id)
+    {
+        if (Equals(id, Guid.Empty))
+            throw new ArgumentException($"{nameof(id)} не может быть пустым", nameof(id));
     }
 }
