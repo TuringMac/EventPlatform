@@ -21,6 +21,11 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
         int safePage = page ?? 1;
         int safePageSize = pageSize ?? 10;
 
+        if (safePage < 1)
+            throw new ArgumentException("Номер страницы должен быть положительным", nameof(page));
+        if (safePageSize < 1)
+            throw new ArgumentException("Размер страницы должен быть положительным", nameof(pageSize));
+
         IEnumerable<Event> events = _context.GetAll();
         // Фильтрация
         if (!string.IsNullOrWhiteSpace(title))
@@ -32,10 +37,6 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
         // Пагинация
         int totalAmount = events.Count();
-        if (safePageSize < 1)
-            safePageSize = 1;
-        if (safePage < 1)
-            safePage = 1;
         events = events.Skip((safePage - 1) * safePageSize).Take(safePageSize);
         var pageItems = events.Count();
         _logger.LogInformation("Query filtered: {totalAmount}; Items on page {pageItems}", totalAmount, pageItems);
@@ -44,6 +45,8 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
 
     public Event GetById(Guid id)
     {
+        if (Equals(id, Guid.Empty))
+            throw new ArgumentException($"{id} не может быть пустым", nameof(id));
         return _context.GetById(id);
     }
 

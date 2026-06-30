@@ -72,6 +72,8 @@ public class EventServiceTest
         _eventService = new EventService(_eventStorageMock.Object, _logger.Object);
     }
 
+    #region Success cases
+
     [Fact]
     public void CreateEvent_ShouldCallAddOnce()
     {
@@ -257,6 +259,10 @@ public class EventServiceTest
         pagination.Data.Should().BeEmpty();
     }
 
+    #endregion Success cases
+
+    #region Failed cases
+
     [Trait("Category", "Get")]
     [Fact]
     public void GetNonExistedEventById_ThrowNotFoundException()
@@ -336,4 +342,77 @@ public class EventServiceTest
             .Throw<ArgumentException>()
             .WithParameterName(nameof(evt.EndAt));
     }
+
+    #endregion Failed cases
+
+    #region Edge cases
+
+    [Fact]
+    public void CreateEventWithMinMaxDate_Success()
+    {
+        // Arrange
+        var gid = Guid.NewGuid();
+        var evtMin = new Event
+        {
+            Id = gid,
+            Title = "Test",
+            Description = "Test",
+            StartAt = DateTime.MinValue,
+            EndAt = DateTime.MinValue,
+        };
+
+        var evtMax = new Event
+        {
+            Id = gid,
+            Title = "Test",
+            Description = "Test",
+            StartAt = DateTime.MaxValue,
+            EndAt = DateTime.MaxValue,
+        };
+
+        // Act
+        var actMin = () => _eventService.Add(evtMin);
+        var actMax = () => _eventService.Add(evtMax);
+
+        // Assert
+        actMin.Should().NotThrow();
+        actMax.Should().NotThrow();
+    }
+
+    [Fact]
+    public void GetEventByEmptyId_ThrowAgrumentException()
+    {
+        // Arrange
+        var id = Guid.Empty;
+
+        // Act
+        var act = () => _eventService.GetById(id);
+
+        // Assert
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName(nameof(id));
+    }
+
+    [Fact]
+    public void EventPaginationWithNegativePageNumber_ThrowsArgumentException()
+    {
+        // Arrange
+        int pageNum = -1;
+        int pageSize = -10;
+
+        // Act
+        var paginationNegativePageNum = () => _eventService.GetAll(null, null, null, pageNum);
+        var paginationNegativePageSize = () => _eventService.GetAll(null, null, null, 1, pageSize);
+
+        // Assert
+        paginationNegativePageNum.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName("page");
+        paginationNegativePageSize.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName("pageSize");
+    }
+
+    #endregion Edge cases
 }
