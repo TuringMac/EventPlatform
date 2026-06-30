@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
 using EventPlatform.Api.Services;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -98,10 +99,10 @@ public class EventServiceTest
         // Arrange
 
         // Act
-        var result = _eventService.GetAll(null, null, null);
+        var eventList = _eventService.GetAll(null, null, null);
 
         // Assert
-        Assert.Equal(_events.Count(), result.Data.Count());
+        eventList.Data.Should().BeEquivalentTo(_events);
     }
 
     [Trait("Category", "Get")]
@@ -112,10 +113,10 @@ public class EventServiceTest
         var evtToReturn = _events.First();
 
         // Act
-        var result = _eventService.GetById(testEvent1Gid);
+        var evt = _eventService.GetById(testEvent1Gid);
 
         // Assert
-        Assert.Equal(evtToReturn.Id, result.Id);
+        evt.Should().BeEquivalentTo(evtToReturn);
     }
 
     [Fact]
@@ -151,8 +152,13 @@ public class EventServiceTest
             EndAt = testEvent1EndAt,
         };
 
-        // Act // Assert
-        Assert.Throws<ArgumentException>(() => _eventService.Update(testEvent1Gid, evt));
+        // Act
+        var act = () => _eventService.Update(testEvent1Gid, evt);
+
+        // Assert
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName(nameof(evt.Id));
     }
 
     [Fact]
@@ -169,7 +175,7 @@ public class EventServiceTest
 
     [Trait("Category", "Get")]
     [Fact]
-    public void FilterEventByName()
+    public void FilterEventByName_ShouldReturnOneEventWithMatchingName()
     {
         // Arrange
         var title = "Test Event 1";
@@ -178,7 +184,8 @@ public class EventServiceTest
         var evt = _eventService.GetAll(title, null, null).Data.Single();
 
         // Assert
-        Assert.Equal(testEvent1Gid, evt.Id);
+        evt.Id.Should().Be(testEvent1Gid);
+        evt.Title.Should().Contain(title);
     }
 
     [Trait("Category", "Get")]
@@ -187,11 +194,19 @@ public class EventServiceTest
     {
         // Arrange
         var from = testEvent2StartAt.AddHours(-1);
+        var expectedFrom = _events.Last();
         var to = testEvent1EndAt.AddHours(1);
+        var expectedTo = _events.First();
 
-        // Act // Assert
-        Assert.Single(_eventService.GetAll(null, from, null).Data);
-        Assert.Single(_eventService.GetAll(null, null, to).Data);
+        // Act
+        var fromEvent = _eventService.GetAll(null, from, null).Data;
+        var toEvent = _eventService.GetAll(null, null, to).Data;
+
+        // Assert
+        fromEvent.Should().ContainSingle();
+        fromEvent.Single().Should().BeEquivalentTo(expectedFrom);
+        toEvent.Should().ContainSingle();
+        toEvent.Single().Should().BeEquivalentTo(expectedTo);
     }
 
     [Trait("Category", "Get")]
@@ -206,10 +221,10 @@ public class EventServiceTest
         var pagination = _eventService.GetAll(null, null, null, pageNum, pageSize);
 
         // Assert
-        Assert.Equal(_events.Count(), pagination.Data.Count());
+        pagination.Data.Count().Should().Be(_events.Count());
         Assert.Equal(_events.Count() % pageSize, pagination.PageItems);
         Assert.Equal(_events.Count(), pagination.TotalItems);
-        Assert.Equal(pageNum, pagination.CurrentPage);
+        pagination.CurrentPage.Should().Be(pageNum);
     }
 
     [Trait("Category", "Get")]
@@ -224,7 +239,7 @@ public class EventServiceTest
         var pagination = _eventService.GetAll(title, null, to);
 
         // Assert
-        Assert.Single(pagination.Data);
+        pagination.Data.Should().ContainSingle();
     }
 
     [Trait("Category", "Get")]
@@ -239,7 +254,7 @@ public class EventServiceTest
         var pagination = _eventService.GetAll(title, from, null);
 
         // Assert
-        Assert.Empty(pagination.Data);
+        pagination.Data.Should().BeEmpty();
     }
 
     [Trait("Category", "Get")]
@@ -249,8 +264,11 @@ public class EventServiceTest
         // Arrange
         var gid = Guid.NewGuid();
 
-        // Act // Assert
-        Assert.Throws<KeyNotFoundException>(() => _eventService.GetById(gid));
+        // Act
+        var act = () => _eventService.GetById(gid);
+
+        // Assert
+        act.Should().Throw<KeyNotFoundException>();
     }
 
     [Fact]
@@ -267,8 +285,11 @@ public class EventServiceTest
             EndAt = DateTime.Now,
         };
 
-        // Act // Assert
-        Assert.Throws<KeyNotFoundException>(() => _eventService.Update(gid, evt));
+        // Act
+        var act = () => _eventService.Update(gid, evt);
+
+        // Assert
+        act.Should().Throw<KeyNotFoundException>();
     }
 
     [Fact]
@@ -285,8 +306,13 @@ public class EventServiceTest
             EndAt = DateTime.Now.AddHours(-1),
         };
 
-        // Act // Assert
-        Assert.Throws<ArgumentException>(() => _eventService.Add(evt));
+        // Act
+        var act = () => _eventService.Add(evt);
+
+        // Assert
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName(nameof(evt.EndAt));
     }
 
     [Fact]
@@ -302,7 +328,12 @@ public class EventServiceTest
             EndAt = DateTime.Now.AddHours(-1),
         };
 
-        // Act // Assert
-        Assert.Throws<ArgumentException>(() => _eventService.Update(testEvent1Gid, evt));
+        // Act
+        var act = () => _eventService.Update(testEvent1Gid, evt);
+
+        // Assert
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithParameterName(nameof(evt.EndAt));
     }
 }
