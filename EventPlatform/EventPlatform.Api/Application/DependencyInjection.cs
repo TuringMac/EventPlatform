@@ -9,6 +9,9 @@ public static class DependencyInjection
     {
         // Бизнес-логика
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IBookingService, BookingService>();
+
+        services.AddHostedService<BookingBackgroundService>();
 
         return services;
     }

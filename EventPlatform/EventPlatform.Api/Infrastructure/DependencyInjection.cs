@@ -3,13 +3,14 @@ using EventPlatform.Api.Storage;
 
 namespace EventPlatform.Api.Infrastructure;
 
-    public static class DependencyInjection
+public static class DependencyInjection
+{
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-        {
-            // База данных
-            services.AddSingleton<IEventStorage, InMemoryStorage>();
+        // База данных
+        services.AddSingleton<IEventStorage, EventInMemoryStorage>();
+        services.AddSingleton<IBookingStorage, BookingInMemoryStorage>();
 
-            return services;
-        }
+        return services;
     }
+}
