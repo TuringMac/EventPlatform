@@ -1,8 +1,7 @@
-﻿namespace EventPlatform.Api.Interfaces
+﻿namespace EventPlatform.Api.Interfaces;
+
+public interface IRead<out T>
 {
-    public interface IRead<out T>
-    {
-        IEnumerable<T> GetAll();
-        T GetById(Guid id);
-    }
+    IEnumerable<T> GetAll();
+    T GetById(Guid id);
 }
