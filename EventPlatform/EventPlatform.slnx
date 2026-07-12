@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="EventPlatform.Api/EventPlatform.Api.csproj" />
-  <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" Id="4de92b6d-5de8-4b23-86d2-b6aaf24a91d3" />
+  <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" Id="4de92b6d-5de8-4b23-86d2-b6aaf24a91d3">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
 </Solution>
