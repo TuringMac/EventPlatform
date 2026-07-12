@@ -1,6 +1,5 @@
 using EventPlatform.Api.Application;
 using EventPlatform.Api.Infrastructure;
-using EventPlatform.Api.Middleware;
 using EventPlatform.Api.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);

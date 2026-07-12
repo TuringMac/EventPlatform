@@ -3,15 +3,15 @@ using EventPlatform.Api.Model;
 
 namespace EventPlatform.Api.Storage;
 
-public class InMemoryStorage : IEventStorage
+public class EventInMemoryStorage : IEventStorage
 {
     List<Event> _events { get; } = new List<Event>();
 
-    public InMemoryStorage()
+    public EventInMemoryStorage()
     {
-        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Квадроциклы", StartAt = DateTime.Parse("2026-06-30 12:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
-        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Велосипеды", StartAt = DateTime.Parse("2026-07-01 11:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
-        _events.Add(new Event { Id = Guid.NewGuid(), Title = "Футбол", StartAt = DateTime.Parse("2026-07-01 10:00"), EndAt = DateTime.Parse("2026-07-01 16:00") });
+        _events.Add(new Event { Id = new Guid("{00688318-0ECB-4444-BCB8-FCDCCD16103C}"), Title = "Квадроциклы", StartAt = DateTime.Parse("2026-06-30 12:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
+        _events.Add(new Event { Id = new Guid("{1371A164-F0C0-4AF3-97FF-5E59BA78B70B}"), Title = "Велосипеды", StartAt = DateTime.Parse("2026-07-01 11:00"), EndAt = DateTime.Parse("2026-07-01 13:00") });
+        _events.Add(new Event { Id = new Guid("{10814960-D812-4720-9492-B896930FF39E}"), Title = "Футбол", StartAt = DateTime.Parse("2026-07-01 10:00"), EndAt = DateTime.Parse("2026-07-01 16:00") });
 
         // AI generated
         _events.Add(new Event { Id = Guid.NewGuid(), Title = "Турнир по шахматам", StartAt = DateTime.Parse("2026-06-29 10:00"), EndAt = DateTime.Parse("2026-06-29 14:00") });
