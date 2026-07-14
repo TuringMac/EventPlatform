@@ -3,7 +3,7 @@ using EventPlatform.Api.Model;
 
 namespace EventPlatform.Api.Services;
 
-public class BookingBackgroundService(IBookingStorage _bookingStorage, ILogger<BookingBackgroundService> _logger) : BackgroundService
+public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger, IServiceScopeFactory _scopeFactory) : BackgroundService
 {
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -15,20 +15,17 @@ public class BookingBackgroundService(IBookingStorage _bookingStorage, ILogger<B
             try
             {
                 _logger.LogInformation("Polling {bookStatus} bookings", BookingStatusEnum.Pending);
-                if (_bookingStorage.GetAll().Any(b => b.Status == BookingStatusEnum.Pending))
+                using var scope = _scopeFactory.CreateScope();
+                var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                if ((await bookingService.GetPendingBookingsAsync(stoppingToken)).Any())
                 {
                     _logger.LogInformation("Retrieving {bookStatus} booking", BookingStatusEnum.Pending);
-                    var book = _bookingStorage.GetAll().First(b => b.Status == BookingStatusEnum.Pending);
+                    var book = (await bookingService.GetPendingBookingsAsync(stoppingToken)).First();
 
                     _logger.LogInformation("Processing {bookId} booking", book.Id);
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
-                    _bookingStorage.Update(book.Id, new Booking
-                    {
-                        EventId = book.EventId,
-                        Status = BookingStatusEnum.Confirmed,
-                        ProcessedAt = DateTime.UtcNow
-                    });
+                    await bookingService.ConfirmAsync(book, stoppingToken);
                     _logger.LogInformation("Booking {bookId} confirmed successfully", book.Id);
                 }
             }

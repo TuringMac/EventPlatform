@@ -23,7 +23,7 @@ public class BookingInMemoryStorage : IBookingStorage
     {
         var obj = _bookings.FirstOrDefault(b => b.Id == id);
         if (obj == null)
-            throw new KeyNotFoundException($"Брони с ID {id} не найдено");
+            throw new KeyNotFoundException($"Бронь с ID {id} не найдена");
         _bookings.Remove(obj);
     }
 
@@ -36,7 +36,7 @@ public class BookingInMemoryStorage : IBookingStorage
     {
         var obj = _bookings.FirstOrDefault(b => b.Id == id);
         if (obj == null)
-            throw new KeyNotFoundException($"Брони с ID {id} не найдено");
+            throw new KeyNotFoundException($"Бронь с ID {id} не найдена");
         return obj;
     }
 
@@ -44,7 +44,7 @@ public class BookingInMemoryStorage : IBookingStorage
     {
         var oldObj = _bookings.FirstOrDefault(b => b.Id == id);
         if (oldObj == null)
-            throw new KeyNotFoundException($"Брони с ID {id} не найдено");
+            throw new KeyNotFoundException($"Бронь с ID {id} не найдена");
 
         oldObj.EventId = obj.EventId;
         oldObj.Status = obj.Status;
