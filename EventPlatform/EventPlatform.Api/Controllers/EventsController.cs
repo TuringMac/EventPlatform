@@ -9,7 +9,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class EventsController(IEventService _eventService, ILogger<EventsController> _logger) : ControllerBase
+public class EventsController(IEventService _eventService, IBookingService _bookingService, ILogger<EventsController> _logger) : ControllerBase
 {
     // CancellationToken как заметка для себя, что так можно получить
     [HttpGet]
@@ -67,6 +67,22 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
             StatusCode = HttpStatusCode.Created,
             Message = "Добавляем мероприятие в коллекцию и возвращаем HTTP 201 Created"
         });
+    }
+
+    [HttpPost("{eventId:guid}/book")]
+    public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
+    {
+        var book = await _bookingService.CreateBookingAsync(eventId, cancellationToken);
+        return AcceptedAtAction(
+            nameof(BookingsController.GetById),
+            "Bookings",
+            new { id = book.Id }, new ApiResult<Booking>
+            {
+                Data = book,
+                Success = true,
+                StatusCode = HttpStatusCode.Accepted,
+                Message = "Бронирование взято в обработку"
+            });
     }
 
     [HttpPut("{id:guid}")]

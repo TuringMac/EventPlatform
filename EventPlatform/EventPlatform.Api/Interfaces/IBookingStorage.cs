@@ -2,6 +2,6 @@
 
 namespace EventPlatform.Api.Interfaces;
 
-public interface IEventStorage : IStorage<Event>
+public interface IBookingStorage : IStorage<Booking>
 {
 }

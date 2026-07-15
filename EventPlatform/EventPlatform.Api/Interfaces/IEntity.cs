@@ -1,7 +1,6 @@
-﻿namespace EventPlatform.Api.Interfaces
+﻿namespace EventPlatform.Api.Interfaces;
+
+public interface IEntity
 {
-    public interface IEntity
-    {
-        Guid Id { get; }
-    }
+    Guid Id { get; }
 }
