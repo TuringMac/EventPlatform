@@ -16,6 +16,7 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
             EventId = eventId
         };
         _bookingStorage.Add(booking);
+        _logger.LogInformation("Booking запрос сохранен в БД");
         return booking;
     }
 
@@ -26,17 +27,22 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
         return _bookingStorage.GetById(bookingId);
     }
 
-    public async Task ConfirmAsync(Booking booking, CancellationToken cancellationToken = default)
+    public async Task ConfirmAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        if (booking.Status == BookingStatusEnum.Pending)
+        if (id == Guid.Empty)
+            throw new ArgumentException(nameof(id));
+        var book = _bookingStorage.GetById(id);
+        if (book != null && book.Status == BookingStatusEnum.Pending)
         {
-            booking.Status = BookingStatusEnum.Confirmed;
-            booking.ProcessedAt = DateTime.UtcNow;
+            book.Status = BookingStatusEnum.Confirmed;
+            book.ProcessedAt = DateTime.UtcNow;
+            _bookingStorage.Update(id, book);
+            _logger.LogInformation("Booking запрос {bookId} подтвержден", book.Id);
         }
     }
 
     public async Task<IEnumerable<Booking>> GetPendingBookingsAsync(CancellationToken cancellationToken = default)
     {
-        return _bookingStorage.GetAll().Where(b => b.Status == BookingStatusEnum.Pending).ToList();
+        return _bookingStorage.GetAll().Where(b => b.Status == BookingStatusEnum.Pending);
     }
 }

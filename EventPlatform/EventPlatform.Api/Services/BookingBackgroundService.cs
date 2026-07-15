@@ -17,15 +17,12 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
                 _logger.LogInformation("Polling {bookStatus} bookings", BookingStatusEnum.Pending);
                 using var scope = _scopeFactory.CreateScope();
                 var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                if ((await bookingService.GetPendingBookingsAsync(stoppingToken)).Any())
+                foreach(var book in await bookingService.GetPendingBookingsAsync(stoppingToken))
                 {
-                    _logger.LogInformation("Retrieving {bookStatus} booking", BookingStatusEnum.Pending);
-                    var book = (await bookingService.GetPendingBookingsAsync(stoppingToken)).First();
-
                     _logger.LogInformation("Processing {bookId} booking", book.Id);
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
-                    await bookingService.ConfirmAsync(book, stoppingToken);
+                    await bookingService.ConfirmAsync(book.Id, stoppingToken);
                     _logger.LogInformation("Booking {bookId} confirmed successfully", book.Id);
                 }
             }
