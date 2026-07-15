@@ -24,6 +24,7 @@ public class BookingServiceTest
         Status = BookingStatusEnum.Confirmed,
         ProcessedAt = DateTime.UtcNow
     };
+    Booking? newBooking = null;
     readonly Mock<IBookingStorage> _bookingStorage;
     readonly Mock<IEventService> _eventService;
     readonly IBookingService _bookingService;
@@ -40,12 +41,18 @@ public class BookingServiceTest
         {
             if (booking.EventId != existedEvent.Id)
                 throw new KeyNotFoundException($"Событие с ID {booking.EventId} не найдено");
+            newBooking = booking;
         });
-        _bookingStorage.Setup(storage => storage.GetById(It.Is<Guid>(id => id != existedBooking.Id))).Callback<Guid>(bookingId =>
-        {
-            throw new KeyNotFoundException($"Бронирование с ID {bookingId} не найдено");
-        });
-        _bookingStorage.Setup(storage => storage.GetById(existedBooking.Id)).Returns(existedBooking);
+        _bookingStorage.Setup(storage => storage.GetById(It.IsAny<Guid>()))
+            .Returns((Guid id) =>
+            {
+                if (existedBooking.Id == id)
+                    return existedBooking;
+                else if (newBooking?.Id == id)
+                    return newBooking;
+                else
+                    throw new KeyNotFoundException();
+            });
         _bookingService = new BookingService(_bookingStorage.Object, _eventService.Object, new LoggerFactory().CreateLogger<BookingService>());
     }
 
@@ -89,15 +96,14 @@ public class BookingServiceTest
     public async Task BookingChangesState()
     {
         // Arrange
-        var processedBooking = new Booking
-        {
-            EventId = Guid.NewGuid(),
-        };
+        var eventId = existedEvent.Id;
 
         // Act
-        var statusBefore = processedBooking.Status;
-        await _bookingService.ConfirmAsync(processedBooking, TestContext.Current.CancellationToken);
-        var statusAfter = processedBooking.Status;
+        var bookBefore = await _bookingService.CreateBookingAsync(eventId, TestContext.Current.CancellationToken);
+        var statusBefore = bookBefore.Status;
+        await _bookingService.ConfirmAsync(bookBefore.Id, TestContext.Current.CancellationToken);
+        var bookAfter = await _bookingService.GetBookingByIdAsync(bookBefore.Id, TestContext.Current.CancellationToken);
+        var statusAfter = bookAfter.Status;
 
         // Assert
         statusBefore.Should().Be(BookingStatusEnum.Pending);
