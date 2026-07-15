@@ -73,12 +73,16 @@ public class EventsController(IEventService _eventService, IBookingService _book
     public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
     {
         var book = await _bookingService.CreateBookingAsync(eventId, cancellationToken);
-        return AcceptedAtAction(nameof(BookingsController.GetById), new { id = book.Id }, new ApiResult
-        {
-            Success = true,
-            StatusCode = HttpStatusCode.Accepted,
-            Message = "Бронирование взято в обработку"
-        });
+        return AcceptedAtAction(
+            nameof(BookingsController.GetById),
+            "Bookings",
+            new { id = book.Id }, new ApiResult<Booking>
+            {
+                Data = book,
+                Success = true,
+                StatusCode = HttpStatusCode.Accepted,
+                Message = "Бронирование взято в обработку"
+            });
     }
 
     [HttpPut("{id:guid}")]
