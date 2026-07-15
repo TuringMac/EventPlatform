@@ -8,7 +8,7 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
     public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
         if (eventId == Guid.Empty)
-            throw new ArgumentNullException(nameof(eventId));
+            throw new ArgumentException(nameof(eventId));
         _eventService.GetById(eventId); // Выбросит исключение, если событие не найдено
 
         var booking = new Booking
