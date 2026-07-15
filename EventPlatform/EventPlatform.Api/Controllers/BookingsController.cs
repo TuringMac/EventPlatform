@@ -8,7 +8,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BookingsController(IBookingService _bookingService, ILogger<BookingsController> _logger) : ControllerBase
+public class BookingsController(IBookingService _bookingService) : ControllerBase
 {
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiBaseResult>> GetById(Guid id, CancellationToken cancellationToken)
