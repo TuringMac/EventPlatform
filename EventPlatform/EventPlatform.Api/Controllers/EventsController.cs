@@ -49,16 +49,17 @@ public class EventsController(IEventService _eventService, IBookingService _book
     }
 
     [HttpPost]
-    public ActionResult<ApiResult> Post([FromBody] EventDto value)
+    public async Task<ActionResult<ApiResult>> Post([FromBody] EventDto value, CancellationToken cancellationToken = default)
     {
-        var evt = new Event
-        {
-            Id = value.Id,
-            Title = value.Title,
-            Description = value.Description,
-            StartAt = value.StartAt,
-            EndAt = value.EndAt,
-        };
+        var evt = await _eventService.CreateEventAsync(
+            value.Id,
+            value.Title,
+            value.Description ?? string.Empty,
+            value.StartAt,
+            value.EndAt,
+            value.TotalSeats,
+            cancellationToken
+        );
         _logger.LogDebug("DTO сконвертирован");
         _eventService.Add(evt);
         return CreatedAtAction(nameof(GetById), new { id = evt.Id }, new ApiResult
@@ -69,7 +70,14 @@ public class EventsController(IEventService _eventService, IBookingService _book
         });
     }
 
+    /// <summary>
+    /// Забронировать места на мероприятие
+    /// </summary>
+    /// <param name="eventId">Идентификатор мероприятия</param>
+    /// <returns></returns>
+    /// <response code="409">Нет доступных мест на мероприятие</response>
     [HttpPost("{eventId:guid}/book")]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
     {
         var book = await _bookingService.CreateBookingAsync(eventId, cancellationToken);
@@ -86,16 +94,13 @@ public class EventsController(IEventService _eventService, IBookingService _book
     }
 
     [HttpPut("{id:guid}")]
-    public ActionResult<ApiResult> Put(Guid id, [FromBody] EventDto value)
+    public async Task<ActionResult<ApiResult>> Put(Guid id, [FromBody] EventDto value)
     {
-        var evt = new Event
-        {
-            Id = value.Id,
-            Title = value.Title,
-            Description = value.Description,
-            StartAt = value.StartAt,
-            EndAt = value.EndAt,
-        };
+        var evt = _eventService.GetById(id);
+        evt.Title = value.Title;
+        evt.Description = value.Description;
+        evt.StartAt = value.StartAt;
+        evt.EndAt = value.EndAt;
 
         _eventService.Update(id, evt);
         _logger.LogDebug("Событие {Id} обновлено", evt.Id);
