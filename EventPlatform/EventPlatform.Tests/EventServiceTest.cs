@@ -38,6 +38,7 @@ public class EventServiceTest
                 Description = "This is a test event",
                 StartAt = testEvent1StartAt,
                 EndAt = testEvent1EndAt,
+                TotalSeats = 3,
             },
             new Event
             {
@@ -46,6 +47,7 @@ public class EventServiceTest
                 Description = "This is a test event",
                 StartAt = testEvent2StartAt,
                 EndAt = testEvent2EndAt,
+                TotalSeats = 5,
             },
         ];
 
@@ -85,6 +87,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = DateTime.UtcNow.AddHours(-1),
             EndAt = DateTime.UtcNow.AddHours(1),
+            TotalSeats = 4,
         };
 
         // Act
@@ -132,6 +135,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = testEvent1StartAt,
             EndAt = testEvent1EndAt,
+            TotalSeats = 6,
         };
 
         // Act
@@ -152,6 +156,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = testEvent1StartAt,
             EndAt = testEvent1EndAt,
+            TotalSeats = 7,
         };
 
         // Act
@@ -289,6 +294,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now,
+            TotalSeats = 3,
         };
 
         // Act
@@ -310,6 +316,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now.AddHours(1),
             EndAt = DateTime.Now.AddHours(-1),
+            TotalSeats = 5,
         };
 
         // Act
@@ -332,6 +339,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now.AddHours(1),
             EndAt = DateTime.Now.AddHours(-1),
+            TotalSeats = 4,
         };
 
         // Act
@@ -359,6 +367,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.MinValue,
             EndAt = DateTime.MinValue,
+            TotalSeats = 6,
         };
 
         var evtMax = new Event
@@ -368,6 +377,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.MaxValue,
             EndAt = DateTime.MaxValue,
+            TotalSeats = 5,
         };
 
         // Act

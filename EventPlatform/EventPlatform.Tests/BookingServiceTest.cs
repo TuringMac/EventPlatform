@@ -16,12 +16,12 @@ public class BookingServiceTest
         Id = new Guid("B6780633-10B5-40DF-B129-B7A01D6F7EE6"),
         Title = "Тестовое событие",
         StartAt = DateTime.Parse("2026-06-30 12:00"),
-        EndAt = DateTime.Parse("2026-07-01 13:00")
+        EndAt = DateTime.Parse("2026-07-01 13:00"),
+        TotalSeats = 5,
     };
     readonly Booking existedBooking = new Booking
     {
         EventId = new Guid("B6780633-10B5-40DF-B129-B7A01D6F7EE6"),
-        Status = BookingStatusEnum.Confirmed,
         ProcessedAt = DateTime.UtcNow
     };
     Booking? newBooking = null;
@@ -31,18 +31,21 @@ public class BookingServiceTest
 
     public BookingServiceTest()
     {
+        existedBooking.Confirm();
         _eventService = new Mock<IEventService>();
-        _eventService.Setup(service => service.GetById(It.Is<Guid>(id => id != existedEvent.Id))).Callback<Guid>(eventId =>
-        {
-            throw new KeyNotFoundException($"Событие с ID {eventId} не найдено");
-        });
+        _eventService
+            .Setup(s => s.GetById(existedEvent.Id))
+            .Returns(existedEvent);
+        _eventService.Setup(service => service.GetById(It.Is<Guid>(id => id != existedEvent.Id)))
+            .Throws((Guid id) => new KeyNotFoundException($"Событие с ID {id} не найдено"));
+        _eventService.Setup(s => s.Update(existedEvent.Id, It.IsAny<Event>()));
         _bookingStorage = new Mock<IBookingStorage>();
         _bookingStorage.Setup(storage => storage.Add(It.IsAny<Booking>())).Callback<Booking>(booking =>
-        {
-            if (booking.EventId != existedEvent.Id)
-                throw new KeyNotFoundException($"Событие с ID {booking.EventId} не найдено");
-            newBooking = booking;
-        });
+            {
+                if (booking.EventId != existedEvent.Id)
+                    throw new KeyNotFoundException($"Событие с ID {booking.EventId} не найдено");
+                newBooking = booking;
+            });
         _bookingStorage.Setup(storage => storage.GetById(It.IsAny<Guid>()))
             .Returns((Guid id) =>
             {
@@ -101,7 +104,7 @@ public class BookingServiceTest
         // Act
         var bookBefore = await _bookingService.CreateBookingAsync(eventId, TestContext.Current.CancellationToken);
         var statusBefore = bookBefore.Status;
-        await _bookingService.ConfirmAsync(bookBefore.Id, TestContext.Current.CancellationToken);
+        bookBefore.Confirm();
         var bookAfter = await _bookingService.GetBookingByIdAsync(bookBefore.Id, TestContext.Current.CancellationToken);
         var statusAfter = bookAfter.Status;
 
