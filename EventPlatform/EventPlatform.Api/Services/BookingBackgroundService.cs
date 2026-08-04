@@ -5,6 +5,7 @@ namespace EventPlatform.Api.Services;
 
 public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger, IServiceScopeFactory _scopeFactory) : BackgroundService
 {
+    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -17,14 +18,10 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
                 _logger.LogInformation("Polling {bookStatus} bookings", BookingStatusEnum.Pending);
                 using var scope = _scopeFactory.CreateScope();
                 var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                foreach(var book in await bookingService.GetPendingBookingsAsync(stoppingToken))
-                {
-                    _logger.LogInformation("Processing {bookId} booking", book.Id);
-                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
-                    await bookingService.ConfirmAsync(book.Id, stoppingToken);
-                    _logger.LogInformation("Booking {bookId} confirmed successfully", book.Id);
-                }
+                var pendingBookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
+                var tasks = pendingBookings.Select(book => bookingService.ProcessBookingAsync(book, stoppingToken));
+                await Task.WhenAll(tasks);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

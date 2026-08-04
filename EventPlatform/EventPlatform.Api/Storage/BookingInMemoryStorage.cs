@@ -10,7 +10,9 @@ public class BookingInMemoryStorage : IBookingStorage
     public BookingInMemoryStorage()
     {
         // Добавим несколько тестовых бронирований
-        _bookings.Add(new Booking { EventId = new Guid("{10814960-D812-4720-9492-B896930FF39E}"), Status = BookingStatusEnum.Confirmed, ProcessedAt = DateTime.UtcNow });
+        var evt = new Booking { EventId = new Guid("{10814960-D812-4720-9492-B896930FF39E}"), ProcessedAt = DateTime.UtcNow };
+        evt.Confirm();
+        _bookings.Add(evt);
         _bookings.Add(new Booking { EventId = new Guid("{10814960-D812-4720-9492-B896930FF39E}")});
     }
 
@@ -47,7 +49,6 @@ public class BookingInMemoryStorage : IBookingStorage
             throw new KeyNotFoundException($"Бронь с ID {id} не найдена");
 
         oldObj.EventId = obj.EventId;
-        oldObj.Status = obj.Status;
         oldObj.ProcessedAt = obj.ProcessedAt;
     }
 }
