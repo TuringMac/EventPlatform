@@ -12,28 +12,37 @@ public class Event : IEntity
     //[Range(typeof(DateTime), "2026-01-01", "2026-12-31",
     //    ErrorMessage = "Дата должна быть за 2026г.")]
     public required DateTime StartAt { get; set; }
-    //public required DateTime StartAt
-    //{
-    //    get => field;
-    //    set
-    //    {
-    //        // QUESTION: Чтобы с такой проверкой вернуть стандартизированный ответ нужно отключать автоматическую проверку модели?
-    //        if (value > EndAt && EndAt != DateTime.MinValue)
-    //            throw new ArgumentException($"{nameof(StartAt)} не может быть позже чем {nameof(EndAt)}", nameof(StartAt));
-    //        field = value;
-    //    }
-    //}
     //[Range(typeof(DateTime), "2026-01-01", "2026-12-31",
     //    ErrorMessage = "Дата должна быть за 2026г.")]
     public required DateTime EndAt { get; set; }
-    //public required DateTime EndAt
-    //{
-    //    get => field;
-    //    set
-    //    {
-    //        if (value < StartAt && StartAt != DateTime.MinValue)
-    //            throw new ArgumentException($"{nameof(EndAt)} не может быть раньше чем {nameof(StartAt)}", nameof(EndAt));
-    //        field = value;
-    //    }
-    //}
+    int _TotalSeats;
+    [Range(1, int.MaxValue, ErrorMessage = "Количество мест должно быть больше ноля")]
+    public required int TotalSeats
+    {
+        get => _TotalSeats;
+        init
+        {
+            _TotalSeats = value;
+            _AvailableSeats = value;
+        }
+    }
+    int _AvailableSeats;
+    public int AvailableSeats => _AvailableSeats;
+
+    public bool TryReserveSeats(int count = 1)
+    {
+        int old;
+        do
+        {
+            if (_AvailableSeats < count)
+                return false;
+            old = _AvailableSeats;
+        } while (Interlocked.CompareExchange(ref this._AvailableSeats, old - count, old) != old);
+        return true;
+    }
+
+    public void ReleaseSeats(int count = 1)
+    {
+        Interlocked.Add(ref this._AvailableSeats, count);
+    }
 }
