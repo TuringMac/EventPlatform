@@ -8,6 +8,7 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
 {
     private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly Lock _bookingLock = new();
+    private readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
 
     public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
@@ -62,7 +63,7 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
         _logger.LogInformation("Обработка брони {bookingId}", booking.Id);
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            await Task.Delay(ProcessingDelay);
 
             await _processingSemaphore.WaitAsync(stoppingToken);
             var evt = _eventService.GetById(booking.EventId);
@@ -78,14 +79,12 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
                     booking.Reject();
                     _logger.LogWarning("Событие {eventId} не существует. Бронь {bookingId} отменяется.", booking.EventId, booking.Id);
                 }
-                booking.ProcessedAt = DateTime.UtcNow;
                 _bookingStorage.Update(booking.Id, booking);
                 _logger.LogInformation("Бронь {bookingId} обновлена в БД", booking.Id);
             }
             catch (Exception ex)
             {
                 booking.Reject();
-                booking.ProcessedAt = DateTime.UtcNow;
                 _bookingStorage.Update(booking.Id, booking);
                 evt.ReleaseSeats();
                 _eventService.Update(evt.Id, evt);

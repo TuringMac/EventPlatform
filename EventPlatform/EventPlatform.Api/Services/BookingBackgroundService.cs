@@ -5,7 +5,7 @@ namespace EventPlatform.Api.Services;
 
 public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger, IServiceScopeFactory _scopeFactory) : BackgroundService
 {
-    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
+    private readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(3);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -32,7 +32,7 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
                 _logger.LogError(ex, "Ошибка при обработке бронирования");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+            await Task.Delay(PollingInterval, stoppingToken);
         }
 
         _logger.LogInformation(nameof(BookingBackgroundService) + " остановлен");

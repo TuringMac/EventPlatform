@@ -34,7 +34,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
     [Produces("application/json")]
     [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ResponseCache(Duration = 60)]
+    //[ResponseCache(Duration = 60)]
     [HttpGet("{id:guid}")]
     public ActionResult<ApiBaseResult> GetById(Guid id)
     {
