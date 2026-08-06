@@ -96,6 +96,11 @@ public class BookingService(IBookingStorage _bookingStorage, IEventService _even
             _logger.LogWarning("Обработка брони {bookingId} была отменена", booking.Id);
             throw;
         }
+        catch (KeyNotFoundException)
+        {
+            booking.Reject();
+            _bookingStorage.Update(booking.Id, booking);
+        }
         finally
         {
             _processingSemaphore.Release();
