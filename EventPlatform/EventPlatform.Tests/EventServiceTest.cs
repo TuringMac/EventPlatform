@@ -68,7 +68,7 @@ public class EventServiceTest
         {
             var evt = _events.FirstOrDefault(e => e.Id == id);
             if (evt == null)
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException($"Событие с ID {id} не найдено");
             return evt;
         });
         _eventService = new EventService(_eventStorageMock.Object, _logger.Object);
@@ -262,6 +262,24 @@ public class EventServiceTest
 
         // Assert
         pagination.Data.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public async Task CreateEvent_ShouldAvailableSeatsBeSameAsTotalSeats()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var evt = new Event()
+        {
+            Id = id,
+            Title = "Test Event",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 4,
+        };
+
+        // Assert
+        evt.AvailableSeats.Should().Be(evt.TotalSeats);
     }
 
     #endregion Success cases
