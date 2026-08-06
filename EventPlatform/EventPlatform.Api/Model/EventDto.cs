@@ -15,6 +15,7 @@ public class EventDto
     //[Range(typeof(DateTime), "2026-01-01", "2026-12-31",
     //    ErrorMessage = "Дата должна быть за 2026г.")]
     public required DateTime EndAt { get; set; }
+    [Range(1, int.MaxValue, ErrorMessage = "Количество мест должно быть больше ноля")]
     public required int TotalSeats { get; set; }
     public int? SeatsAvailable { get; }
 }
