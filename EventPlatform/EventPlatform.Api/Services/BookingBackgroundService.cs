@@ -22,6 +22,8 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
                 var pendingBookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
                 var tasks = pendingBookings.Select(book => bookingService.ProcessBookingAsync(book, stoppingToken));
                 await Task.WhenAll(tasks);
+
+                await Task.Delay(PollingInterval, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -31,8 +33,6 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
             {
                 _logger.LogError(ex, "Ошибка при обработке бронирования");
             }
-
-            await Task.Delay(PollingInterval, stoppingToken);
         }
 
         _logger.LogInformation(nameof(BookingBackgroundService) + " остановлен");
