@@ -38,6 +38,7 @@ public class EventServiceTest
                 Description = "This is a test event",
                 StartAt = testEvent1StartAt,
                 EndAt = testEvent1EndAt,
+                TotalSeats = 3,
             },
             new Event
             {
@@ -46,6 +47,7 @@ public class EventServiceTest
                 Description = "This is a test event",
                 StartAt = testEvent2StartAt,
                 EndAt = testEvent2EndAt,
+                TotalSeats = 5,
             },
         ];
 
@@ -66,7 +68,7 @@ public class EventServiceTest
         {
             var evt = _events.FirstOrDefault(e => e.Id == id);
             if (evt == null)
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException($"Событие с ID {id} не найдено");
             return evt;
         });
         _eventService = new EventService(_eventStorageMock.Object, _logger.Object);
@@ -85,6 +87,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = DateTime.UtcNow.AddHours(-1),
             EndAt = DateTime.UtcNow.AddHours(1),
+            TotalSeats = 4,
         };
 
         // Act
@@ -132,6 +135,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = testEvent1StartAt,
             EndAt = testEvent1EndAt,
+            TotalSeats = 6,
         };
 
         // Act
@@ -152,6 +156,7 @@ public class EventServiceTest
             Description = "This is a test event",
             StartAt = testEvent1StartAt,
             EndAt = testEvent1EndAt,
+            TotalSeats = 7,
         };
 
         // Act
@@ -258,6 +263,24 @@ public class EventServiceTest
         // Assert
         pagination.Data.Should().BeEmpty();
     }
+    
+    [Fact]
+    public async Task CreateEvent_ShouldAvailableSeatsBeSameAsTotalSeats()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var evt = new Event()
+        {
+            Id = id,
+            Title = "Test Event",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 4,
+        };
+
+        // Assert
+        evt.AvailableSeats.Should().Be(evt.TotalSeats);
+    }
 
     #endregion Success cases
 
@@ -289,6 +312,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now,
+            TotalSeats = 3,
         };
 
         // Act
@@ -310,6 +334,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now.AddHours(1),
             EndAt = DateTime.Now.AddHours(-1),
+            TotalSeats = 5,
         };
 
         // Act
@@ -332,6 +357,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.Now.AddHours(1),
             EndAt = DateTime.Now.AddHours(-1),
+            TotalSeats = 4,
         };
 
         // Act
@@ -359,6 +385,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.MinValue,
             EndAt = DateTime.MinValue,
+            TotalSeats = 6,
         };
 
         var evtMax = new Event
@@ -368,6 +395,7 @@ public class EventServiceTest
             Description = "Test",
             StartAt = DateTime.MaxValue,
             EndAt = DateTime.MaxValue,
+            TotalSeats = 5,
         };
 
         // Act

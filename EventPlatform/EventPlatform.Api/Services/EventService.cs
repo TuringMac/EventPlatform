@@ -5,6 +5,26 @@ namespace EventPlatform.Api.Services;
 
 public class EventService(IEventStorage _context, ILogger<EventService> _logger) : IEventService
 {
+    public async Task<Event> CreateEventAsync(
+        Guid id,
+        string title,
+        string description,
+        DateTime startAt,
+        DateTime endAt,
+        int totalSeats,
+        CancellationToken ct = default)
+    {
+        return await Task.FromResult(new Event
+        {
+            Id=id, 
+            Title=title, 
+            Description=description,
+            StartAt=startAt,
+            EndAt=endAt,
+            TotalSeats = totalSeats,
+        });
+    }
+
     public void Add(Event obj)
     {
         ValidateEvent(obj);
@@ -60,6 +80,8 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
     {
         if (obj.StartAt > obj.EndAt)
             throw new ArgumentException("Дата окончания не может быть раньше даты начала.", nameof(obj.EndAt));
+        if (obj.AvailableSeats > obj.TotalSeats)
+            throw new ArgumentException("Количество доступных мест не может превышать общее количество мест.", nameof(obj.AvailableSeats));
         _logger.LogInformation("Event validated: {Title}, StartAt: {StartAt}, EndAt: {EndAt}", obj.Title, obj.StartAt, obj.EndAt);
     }
 
