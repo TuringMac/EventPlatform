@@ -1,5 +1,5 @@
-﻿using EventPlatform.Api.Interfaces;
-using EventPlatform.Api.Storage;
+﻿using EventPlatform.Api.DbContexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Api.Infrastructure;
 
@@ -8,8 +8,11 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // База данных
-        services.AddSingleton<IEventStorage, EventInMemoryStorage>();
-        services.AddSingleton<IBookingStorage, BookingInMemoryStorage>();
+        var connectionString = configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(connectionString));
 
         return services;
     }

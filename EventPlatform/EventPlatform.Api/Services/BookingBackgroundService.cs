@@ -16,14 +16,22 @@ public class BookingBackgroundService(ILogger<BookingBackgroundService> _logger,
             try
             {
                 _logger.LogInformation("Polling {bookStatus} bookings", BookingStatusEnum.Pending);
-                using var scope = _scopeFactory.CreateScope();
-                var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                List<Guid> pendingBookings;
+                using (var pendingBookingsScope = _scopeFactory.CreateScope())
+                {
+                    var bookingService = pendingBookingsScope.ServiceProvider.GetRequiredService<IBookingService>();
 
-                var pendingBookings = await bookingService.GetPendingBookingsAsync(stoppingToken);
-                var tasks = pendingBookings.Select(book => bookingService.ProcessBookingAsync(book, stoppingToken));
-                await Task.WhenAll(tasks);
+                    pendingBookings = (await bookingService.GetPendingBookingsAsync(stoppingToken)).ToList();
+                }
+                var tasks = pendingBookings.Select(async bookingId =>
+                {
+                    await using var processBookingScope = _scopeFactory.CreateAsyncScope();
+                    var processBookingService = processBookingScope.ServiceProvider.GetRequiredService<IBookingService>();
+                    await processBookingService.ProcessBookingAsync(bookingId, stoppingToken);
+                });
 
-                await Task.Delay(PollingInterval, stoppingToken);
+                var pollingTask = Task.Delay(PollingInterval, stoppingToken);
+                await Task.WhenAll(tasks.Append(pollingTask));
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

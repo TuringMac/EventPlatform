@@ -1,43 +1,48 @@
-﻿using EventPlatform.Api.Interfaces;
+﻿using EventPlatform.Api.DbContexts;
+using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Api.Services;
 
-public class EventService(IEventStorage _context, ILogger<EventService> _logger) : IEventService
+public class EventService(AppDbContext _context, ILogger<EventService> _logger) : IEventService
 {
-    public async Task<Event> CreateEventAsync(
+    public Event CreateEventAsync(
         Guid id,
         string title,
         string description,
         DateTime startAt,
         DateTime endAt,
-        int totalSeats,
-        CancellationToken ct = default)
+        int totalSeats)
     {
-        return await Task.FromResult(new Event
+        return new Event(
+            id,
+            title,
+            startAt,
+            endAt,
+            totalSeats
+        )
         {
-            Id=id, 
-            Title=title, 
-            Description=description,
-            StartAt=startAt,
-            EndAt=endAt,
-            TotalSeats = totalSeats,
-        });
+            Description = description,
+        };
     }
 
-    public void Add(Event obj)
+    public async Task Add(Event obj)
     {
         ValidateEvent(obj);
-        _context.Add(obj);
+        _context.Events.Add(obj);
+        await _context.SaveChangesAsync();
     }
 
-    public void Delete(Guid id)
+    public async Task Delete(Guid id)
     {
         ValidateGuid(id);
-        _context.Delete(id);
+
+        _context.Events.Remove(await _context.Events.Where(e => e.Id == id).SingleAsync());
+        await _context.SaveChangesAsync();
     }
 
-    public PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
+    public async Task<PaginatedResult<Event>> GetAll(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
     {
         int safePage = page ?? 1;
         int safePageSize = pageSize ?? 10;
@@ -47,33 +52,42 @@ public class EventService(IEventStorage _context, ILogger<EventService> _logger)
         if (safePageSize < 1)
             throw new ArgumentException("Размер страницы должен быть положительным", nameof(pageSize));
 
-        IEnumerable<Event> events = _context.GetAll();
+        var eventsQuery = _context.Events.AsNoTracking();
         // Фильтрация
         if (!string.IsNullOrWhiteSpace(title))
-            events = events.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            eventsQuery = eventsQuery.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
         if (from.HasValue && from > DateTime.MinValue)
-            events = events.Where(e => e.StartAt >= from);
+            eventsQuery = eventsQuery.Where(e => e.StartAt >= from);
         if (to.HasValue && to < DateTime.MaxValue)
-            events = events.Where(e => e.EndAt <= to);
+            eventsQuery = eventsQuery.Where(e => e.EndAt <= to);
 
         // Пагинация
-        int totalAmount = events.Count();
-        events = events.Skip((safePage - 1) * safePageSize).Take(safePageSize);
+        var totalAmount = await eventsQuery.CountAsync();
+        var events = await eventsQuery.Skip((safePage - 1) * safePageSize).Take(safePageSize).ToListAsync();
+
         var pageItems = events.Count();
         _logger.LogInformation("Query filtered: {totalAmount}; Items on page {pageItems}", totalAmount, pageItems);
         return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = pageItems, TotalItems = totalAmount };
     }
 
-    public Event GetById(Guid id)
+    public async Task<Event> GetById(Guid id, CancellationToken cancellationToken = default)
     {
         ValidateGuid(id);
-        return _context.GetById(id);
+        var evt = await _context.Events
+            .SingleAsync(e => e.Id == id, cancellationToken);
+        _context.Entry(evt).Collection(o => o.Bookings).Load();
+        return evt;
     }
 
-    public void Update(Guid id, Event obj)
+    public async Task Update(Guid id, Event obj)
     {
         ValidateEvent(id, obj);
-        _context.Update(id, obj);
+        var evt = await _context.Events.SingleAsync(e => e.Id == id);
+        evt.Title = obj.Title;
+        evt.Description = obj.Description;
+        evt.StartAt = obj.StartAt;
+        evt.EndAt = obj.EndAt;
+        await _context.SaveChangesAsync();
     }
 
     void ValidateEvent(Event obj)
