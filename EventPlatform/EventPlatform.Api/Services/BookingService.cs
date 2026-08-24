@@ -20,7 +20,9 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
         await _bookingSemaphore.WaitAsync(cancellationToken);
         try
         {
-            var evt = await _eventService.GetById(eventId); // Выбросит исключение, если событие не найдено
+            var evt = await _eventService.GetByIdAsync(eventId); // Выбросит исключение, если событие не найдено
+            if (evt.EndAt < DateTime.UtcNow)
+                throw new InvalidOperationException();
             if (evt.TryReserveSeats())
             {
                 try
@@ -62,7 +64,10 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
-        return await _context.Bookings.SingleAsync(b => b.Id == bookingId);
+        var booking = await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+        if (booking is null)
+            throw new KeyNotFoundException($"Booking {bookingId} not found");
+        return booking;
     }
 
     public async Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken = default, int batch = 50)
@@ -83,16 +88,27 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
             await Task.Delay(ProcessingDelay);
 
             await _processingSemaphore.WaitAsync(stoppingToken);
-            var booking = await _context.Bookings.SingleAsync(b => b.Id == bookingId);
+            var booking = await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, stoppingToken);
+            if (booking is null)
+                throw new KeyNotFoundException($"Booking {bookingId} not found");
             try
             {
-                var evt = await _eventService.GetById(booking.EventId);
+                var evt = await _eventService.GetByIdAsync(booking.EventId);
                 try
                 {
                     if (evt != null)
                     {
-                        booking.Confirm();
-                        _logger.LogInformation("Booking запрос {bookingId} подтвержден", booking.Id);
+                        if (evt.EndAt >= DateTime.UtcNow)
+                        {
+                            booking.Confirm();
+                            _logger.LogInformation("Booking запрос {bookingId} подтвержден", booking.Id);
+                        }
+                        else
+                        {
+                            booking.Reject();
+                            evt.ReleaseSeats();
+                            _logger.LogInformation("Бронь {bookingId} от менена, мероприятие закончилось", booking.Id);
+                        }
                     }
                     else
                     {

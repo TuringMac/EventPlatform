@@ -7,7 +7,7 @@ namespace EventPlatform.Api.Services;
 
 public class EventService(AppDbContext _context, ILogger<EventService> _logger) : IEventService
 {
-    public Event CreateEventAsync(
+    public async Task<Event> CreateEventAsync(
         Guid id,
         string title,
         string description,
@@ -15,7 +15,7 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         DateTime endAt,
         int totalSeats)
     {
-        return new Event(
+        var evt = new Event(
             id,
             title,
             startAt,
@@ -25,24 +25,25 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         {
             Description = description,
         };
+        _context.Events.Add(evt);
+        await _context.SaveChangesAsync();
+        return evt;
     }
 
-    public async Task Add(Event obj)
+    public async Task AddAsync(Event obj, CancellationToken cancellationToken = default)
     {
         ValidateEvent(obj);
         _context.Events.Add(obj);
         await _context.SaveChangesAsync();
     }
 
-    public async Task Delete(Guid id)
+    public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        ValidateGuid(id);
-
-        _context.Events.Remove(await _context.Events.Where(e => e.Id == id).SingleAsync());
-        await _context.SaveChangesAsync();
+        if ((await _context.Events.Where(e => e.Id == eventId).ExecuteDeleteAsync(cancellationToken)) == 0)
+            throw new KeyNotFoundException();
     }
 
-    public async Task<PaginatedResult<Event>> GetAll(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
+    public async Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
     {
         int safePage = page ?? 1;
         int safePageSize = pageSize ?? 10;
@@ -57,9 +58,9 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         if (!string.IsNullOrWhiteSpace(title))
             eventsQuery = eventsQuery.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
         if (from.HasValue && from > DateTime.MinValue)
-            eventsQuery = eventsQuery.Where(e => e.StartAt >= from);
+            eventsQuery = eventsQuery.Where(e => e.EndAt >= from);
         if (to.HasValue && to < DateTime.MaxValue)
-            eventsQuery = eventsQuery.Where(e => e.EndAt <= to);
+            eventsQuery = eventsQuery.Where(e => e.StartAt <= to);
 
         // Пагинация
         var totalAmount = await eventsQuery.CountAsync();
@@ -70,19 +71,24 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = pageItems, TotalItems = totalAmount };
     }
 
-    public async Task<Event> GetById(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         ValidateGuid(id);
         var evt = await _context.Events
-            .SingleAsync(e => e.Id == id, cancellationToken);
+            .SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
+        if (evt is null)
+            throw new KeyNotFoundException($"Event {id} not found");
         _context.Entry(evt).Collection(o => o.Bookings).Load();
         return evt;
     }
 
-    public async Task Update(Guid id, Event obj)
+    public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken = default)
     {
         ValidateEvent(id, obj);
-        var evt = await _context.Events.SingleAsync(e => e.Id == id);
+        var evt = await _context.Events
+            .SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
+        if (evt is null)
+            throw new KeyNotFoundException($"Event {id} not found");
         evt.Title = obj.Title;
         evt.Description = obj.Description;
         evt.StartAt = obj.StartAt;

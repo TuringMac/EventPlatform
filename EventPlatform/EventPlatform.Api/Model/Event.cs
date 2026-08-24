@@ -39,7 +39,7 @@ public class Event : IEntity
 
     Event() { }
 
-    public Event(
+    internal Event(
         Guid id,
         string title,
         DateTime startAt,
