@@ -10,11 +10,10 @@ public interface IEventService
         string description,
         DateTime startAt,
         DateTime endAt,
-        int totalSeats,
-        CancellationToken ct = default);
-    void Add(Event obj);
-    PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10);
-    Event GetById(Guid id);
-    void Update(Guid id, Event obj);
-    void Delete(Guid id);
+        int totalSeats);
+    Task AddAsync(Event obj, CancellationToken cancellationToken = default);
+    Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10);
+    Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid eventId, CancellationToken cancellationToken = default);
 }

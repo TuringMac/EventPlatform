@@ -1,13 +1,22 @@
 # Event Platform
 
+## Требования
+
+PostgreSQL
+
 ## Запуск приложения
 
-1. Получение `git clone -b sprint-4 https://github.com/TuringMac/EventPlatform`  
+1. Получение `git clone -b sprint-5 https://github.com/TuringMac/EventPlatform`  
 2. Сборка `dotnet build ./EventPlatform/EventPlatform.Api`  
-3. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
-4. API https://localhost:7068  
-5. Swagger https://localhost:7068/swagger/index.html  
-6. Тестирование `dotnet test ./EventPlatform/EventPlatform.Tests`  
+3. Строка подключения `Host=<server>;Port=5432;Database=<db_name>;Username=postgres;Password=postgres` где:  
+3.1. Host - адрес сервера;  
+3.2. Database название БД;  
+3.3. Username/Password учетные данные подключаемого пользователя.  
+4. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
+5. БД создается автоматически `EnsureCreated`  
+6. API https://localhost:7068  
+7. Swagger https://localhost:7068/swagger/index.html  
+8. Тестирование `dotnet test ./EventPlatform/EventPlatform.Tests`  
 
 ## Описание API
 
@@ -24,6 +33,7 @@ GET `/api/events` Получение списка всех мероприяти�
 &emsp;`pageSize` - размер страницы (опционально 10)  
 GET `/api/events/{id:guid}` Получение подробной информации по выбранному мероприятию  
 POST `/api/events/{id}/book` Создание брони на мероприятие  
+GET `/api/events/{eventId:guid}/bookings` Обзор Броней конкретного мероприятия  
 POST `/api/events` Добавление мероприятия в базу  
 PUT `/api/events/{id:guid}` Обновление информации по мероприятию  
 DELETE `/api/events/{id:guid}` Удаление мероприятия из базы  
@@ -148,6 +158,12 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
 5. Во втором случае место освобождается
 
 ## Changelog
+
+### Sprint-5
+
+- Тесты используют EFCore In-Memory
+- Переход на асинхронные вызовы
+- Использование БД Postgres
 
 ### Sprint-4
 
