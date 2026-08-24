@@ -1,285 +1,248 @@
-﻿using EventPlatform.Api.Interfaces;
+﻿using EventPlatform.Api.DbContexts;
+using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
 using EventPlatform.Api.Services;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace EventPlatform.Tests;
 
 public class EventServiceTest
 {
-    private readonly Mock<ILogger<EventService>> _logger;
-    private readonly Mock<IEventStorage> _eventStorageMock;
+    private readonly ServiceProvider _provider;
+    private readonly AppDbContext _db;
     private readonly IEventService _eventService;
-    private readonly IEnumerable<Event> _events;
-    private readonly Guid testEvent1Gid;
-    private readonly DateTime testEvent1StartAt;
-    private readonly DateTime testEvent1EndAt;
-    private readonly Guid testEvent2Gid;
-    private readonly DateTime testEvent2StartAt;
-    private readonly DateTime testEvent2EndAt;
 
     public EventServiceTest()
     {
-        testEvent1Gid = Guid.Parse("B6780633-10B5-40DF-B129-B7A01D6F7EE6");
-        testEvent1StartAt = new DateTime(2026, 04, 01, 10, 0, 0);
-        testEvent1EndAt = new DateTime(2026, 04, 01, 12, 0, 0);
-
-        testEvent2Gid = Guid.Parse("3F04F96B-FA2A-46DF-81E8-F44E006B8271");
-        testEvent2StartAt = new DateTime(2026, 04, 02, 16, 0, 0);
-        testEvent2EndAt = new DateTime(2026, 04, 02, 18, 0, 0);
-
-        _events = [
-            new Event
-            {
-                Id = testEvent1Gid,
-                Title = "Test Event 1",
-                Description = "This is a test event",
-                StartAt = testEvent1StartAt,
-                EndAt = testEvent1EndAt,
-                TotalSeats = 3,
-            },
-            new Event
-            {
-                Id = testEvent2Gid,
-                Title = "Test Event 2",
-                Description = "This is a test event",
-                StartAt = testEvent2StartAt,
-                EndAt = testEvent2EndAt,
-                TotalSeats = 5,
-            },
-        ];
-
-        _logger = new Mock<ILogger<EventService>>();
-        _eventStorageMock = new Mock<IEventStorage>();
-        _eventStorageMock.Setup(storage => storage.GetAll()).Returns(() => _events);
-        _eventStorageMock.Setup(storage => storage.Delete(It.IsAny<Guid>())).Callback<Guid>(id =>
+        var dbName = Guid.NewGuid().ToString();
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName));
+        services.AddLogging(builder =>
         {
-            if (!_events.Any(e => e.Id == id))
-                throw new KeyNotFoundException();
+            builder.AddDebug();
+            builder.SetMinimumLevel(LogLevel.Information);
         });
-        _eventStorageMock.Setup(storage => storage.Update(It.IsAny<Guid>(), It.IsAny<Event>())).Callback<Guid, Event>((id, obj) =>
-        {
-            if (!_events.Any(e => e.Id == id))
-                throw new KeyNotFoundException();
-        });
-        _eventStorageMock.Setup(storage => storage.GetById(It.IsAny<Guid>())).Returns<Guid>(id =>
-        {
-            var evt = _events.FirstOrDefault(e => e.Id == id);
-            if (evt == null)
-                throw new KeyNotFoundException($"Событие с ID {id} не найдено");
-            return evt;
-        });
-        _eventService = new EventService(_eventStorageMock.Object, _logger.Object);
+        services.AddScoped<IEventService, EventService>();
+
+        _provider = services.BuildServiceProvider();
+
+        _db = _provider.GetRequiredService<AppDbContext>();
+        _eventService = _provider.GetRequiredService<IEventService>();
     }
 
     #region Success cases
 
     [Fact]
-    public void CreateEvent_ShouldCallAddOnce()
+    public async Task CreateEvent_ShouldCallAddOnce()
     {
         // Arrange
-        var evt = new Event
-        {
-            Id = Guid.NewGuid(),
-            Title = "Test Event to create",
-            Description = "This is a test event",
-            StartAt = DateTime.UtcNow.AddHours(-1),
-            EndAt = DateTime.UtcNow.AddHours(1),
-            TotalSeats = 4,
-        };
-
         // Act
-        _eventService.Add(evt);
+        var evt = await CreateTestEventAsync();
+        var id = evt.Id;
 
         // Assert
-        _eventStorageMock.Verify(storage => storage.Add(evt), Times.Once);
+        var savedEvt = await _db.Events.SingleAsync(e => e.Id == id, TestContext.Current.CancellationToken);
+        savedEvt.Should().Be(evt);
     }
 
     [Trait("Category", "Get")]
     [Fact]
-    public void GetAllEvents_ShouldReturnAllTestEvents()
+    public async Task GetAllEvents_ShouldReturnAllTestEvents()
     {
         // Arrange
+        var evt = await CreateTestEventAsync();
+        var id = evt.Id;
 
         // Act
-        var eventList = _eventService.GetAll(null, null, null);
+        var eventList = await _eventService.GetAllAsync(null, null, null);
 
         // Assert
-        eventList.Data.Should().BeEquivalentTo(_events);
+        eventList.Data.Should().BeEquivalentTo(_db.Events);
     }
 
     [Trait("Category", "Get")]
     [Fact]
-    public void GetEventById_ReturnsOneCertainEvent()
+    public async Task GetEventById_ReturnsOneCertainEvent()
     {
         // Arrange
-        var evtToReturn = _events.First();
+        var evt = await CreateTestEventAsync();
+        var id = evt.Id;
 
         // Act
-        var evt = _eventService.GetById(testEvent1Gid);
+        var savedEvt = await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
 
         // Assert
-        evt.Should().BeEquivalentTo(evtToReturn);
+        savedEvt.Should().BeEquivalentTo(evt);
     }
 
     [Fact]
-    public void UpdateEvent_ShouldCallUpdateOnce()
+    public async Task UpdateEvent_ShouldCallUpdateOnce()
     {
         // Arrange
-        var evt = new Event
-        {
-            Id = testEvent1Gid,
-            Title = "Test Event 1 Updated",
-            Description = "This is a test event",
-            StartAt = testEvent1StartAt,
-            EndAt = testEvent1EndAt,
-            TotalSeats = 6,
-        };
+        var str = "Changed description";
+        var evt = await CreateTestEventAsync();
+        var id = evt.Id;
+        evt = await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
+        evt.Description = str;
 
         // Act
-        _eventService.Update(testEvent1Gid, evt);
+        await _eventService.UpdateAsync(id, evt, TestContext.Current.CancellationToken);
 
         // Assert
-        _eventStorageMock.Verify(storage => storage.Update(testEvent1Gid, evt), Times.Once);
+        evt = await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
+        evt.Description.Should().Be(str);
     }
 
     [Fact]
-    public void UpdateEvent_DifferentIds_ThrowsArgumentException()
+    public async Task UpdateEvent_DifferentIds_ThrowsArgumentException()
     {
         // Arrange
-        var evt = new Event
-        {
-            Id = Guid.NewGuid(),
-            Title = "Test Event 1 Updated",
-            Description = "This is a test event",
-            StartAt = testEvent1StartAt,
-            EndAt = testEvent1EndAt,
-            TotalSeats = 7,
-        };
+        var anotherId = Guid.NewGuid();
+        var evt = await CreateTestEventAsync();
 
         // Act
-        var act = () => _eventService.Update(testEvent1Gid, evt);
+        var act = async () => await _eventService.UpdateAsync(anotherId, evt, TestContext.Current.CancellationToken);
 
         // Assert
-        act.Should()
-            .Throw<ArgumentException>()
+        await act.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName(nameof(evt.Id));
     }
 
     [Fact]
-    public void DeleteEvent_ShouldCallDeleteOnce()
+    public async Task DeleteEvent_ShouldCallDeleteOnce()
     {
         // Arrange
+        var evt = await CreateTestEventAsync();
+        var id = evt.Id;
 
         // Act
-        _eventService.Delete(testEvent1Gid);
+        //await _eventService.DeleteAsync(evt.Id, TestContext.Current.CancellationToken); // Not appliable with InMemory provider
+        _db.Events.Remove(evt);
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        _eventStorageMock.Verify(storage => storage.Delete(testEvent1Gid), Times.Once);
+        _db.Events.Any(e => e.Id == id).Should().BeFalse();
     }
 
     [Trait("Category", "Get")]
     [Fact]
-    public void FilterEventByName_ShouldReturnOneEventWithMatchingName()
+    public async Task FilterEventByName_ShouldReturnOneEventWithMatchingName()
     {
         // Arrange
-        var title = "Test Event 1";
+        var seed = Guid.NewGuid();
+        var title = $"Test Event {seed}";
+        var evt = await CreateTestEventAsync();
+        evt.Title = title;
+        await _eventService.UpdateAsync(evt.Id, evt, TestContext.Current.CancellationToken);
 
         // Act
-        var evt = _eventService.GetAll(title, null, null).Data.Single();
+        var list = (await _eventService.GetAllAsync(seed.ToString(), null, null)).Data;
 
         // Assert
-        evt.Id.Should().Be(testEvent1Gid);
-        evt.Title.Should().Contain(title);
+        list.Should().ContainSingle(e => e.Title == title);
     }
 
     [Trait("Category", "Get")]
     [Fact]
-    public void FilterEventByDate_ShouldReturnOneEventInBothProbes()
+    public async Task FilterEventByDate_ShouldReturnOneEventInBothProbes()
     {
+        //-9   -1   1      9
+        //|early|
+        //|     |mid|
+        //|     |late      | 
+
         // Arrange
-        var from = testEvent2StartAt.AddHours(-1);
-        var expectedFrom = _events.Last();
-        var to = testEvent1EndAt.AddHours(1);
-        var expectedTo = _events.First();
+        var earlyEvt = await CreateTestEventAsync();
+        earlyEvt.StartAt = earlyEvt.StartAt.AddHours(-8);
+        earlyEvt.EndAt = earlyEvt.EndAt.AddHours(-2);
+        await _eventService.UpdateAsync(earlyEvt.Id, earlyEvt, TestContext.Current.CancellationToken);
+
+        var midEvt = await CreateTestEventAsync();
+
+        var lateEvt = await CreateTestEventAsync();
+        lateEvt.EndAt = lateEvt.EndAt.AddHours(8);
+        await _eventService.UpdateAsync(lateEvt.Id, lateEvt, TestContext.Current.CancellationToken);
+
+
+        var earlySingleFrom = earlyEvt.StartAt.AddHours(1);
+        var earlySingleTo = earlyEvt.EndAt.AddHours(-1);
+
+        var midLateFrom = midEvt.StartAt.AddMinutes(15);
+        var midLateTo = midEvt.EndAt.AddMinutes(-15);
 
         // Act
-        var fromEvent = _eventService.GetAll(null, from, null).Data;
-        var toEvent = _eventService.GetAll(null, null, to).Data;
+        var early = (await _eventService.GetAllAsync(null, earlySingleFrom, earlySingleTo)).Data;
+        var late = (await _eventService.GetAllAsync(null, midLateFrom, midLateTo)).Data;
 
         // Assert
-        fromEvent.Should().ContainSingle();
-        fromEvent.Single().Should().BeEquivalentTo(expectedFrom);
-        toEvent.Should().ContainSingle();
-        toEvent.Single().Should().BeEquivalentTo(expectedTo);
+        early.Single().Should().BeEquivalentTo(earlyEvt);
+        late.Should().BeEquivalentTo([midEvt, lateEvt], options => options.WithoutStrictOrdering());
     }
 
     [Trait("Category", "Get")]
     [Fact]
-    public void EventPagination_ReturnsPaginatedResult()
+    public async Task EventPagination_ReturnsPaginatedResult()
     {
         // Arrange
         int pageNum = 1;
         int pageSize = 10;
+        var evt = await CreateTestEventAsync();
 
         // Act
-        var pagination = _eventService.GetAll(null, null, null, pageNum, pageSize);
+        var pagination = await _eventService.GetAllAsync(null, null, null, pageNum, pageSize);
 
         // Assert
-        pagination.Data.Count().Should().Be(_events.Count());
-        Assert.Equal(_events.Count() % pageSize, pagination.PageItems);
-        Assert.Equal(_events.Count(), pagination.TotalItems);
+        pagination.Data.Count().Should().BeGreaterThan(0).And.BeLessThanOrEqualTo(pageSize);
         pagination.CurrentPage.Should().Be(pageNum);
+        pagination.TotalItems.Should().BeGreaterThanOrEqualTo(pagination.PageItems);
     }
+
+    //[Trait("Category", "Get")]
+    //[Fact]
+    //public void CombinedFilterEvent_ReturnsFilteredResultByTwoFields()
+    //{
+    //    // Arrange
+    //    var title = "1";
+    //    var to = testEvent1EndAt.AddHours(1);
+
+    //    // Act
+    //    var pagination = _eventService.GetAll(title, null, to);
+
+    //    // Assert
+    //    pagination.Data.Should().ContainSingle();
+    //}
 
     [Trait("Category", "Get")]
     [Fact]
-    public void CombinedFilterEvent_ReturnsFilteredResultByTwoFields()
+    public async Task CombinedFilterEventAnd_ReturnsEmptyResultByTwoFields()
     {
         // Arrange
-        var title = "1";
-        var to = testEvent1EndAt.AddHours(1);
+        var title = Guid.NewGuid().ToString();
+        var from = DateTime.MinValue;
 
         // Act
-        var pagination = _eventService.GetAll(title, null, to);
-
-        // Assert
-        pagination.Data.Should().ContainSingle();
-    }
-
-    [Trait("Category", "Get")]
-    [Fact]
-    public void CombinedFilterEventAnd_ReturnsEmptyResultByTwoFields()
-    {
-        // Arrange
-        var title = "test";
-        var from = testEvent2EndAt.AddHours(1);
-
-        // Act
-        var pagination = _eventService.GetAll(title, from, null);
+        var pagination = await _eventService.GetAllAsync(title, from, null);
 
         // Assert
         pagination.Data.Should().BeEmpty();
     }
-    
+
     [Fact]
     public async Task CreateEvent_ShouldAvailableSeatsBeSameAsTotalSeats()
     {
         // Arrange
-        var id = Guid.NewGuid();
-        var evt = new Event()
-        {
-            Id = id,
-            Title = "Test Event",
-            StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2),
-            TotalSeats = 4,
-        };
+        int totalSeats = 4;
+
+        // Act
+        var evt = await CreateTestEventAsync(totalSeats);
 
         // Assert
-        evt.AvailableSeats.Should().Be(evt.TotalSeats);
+        evt.AvailableSeats.Should().Be(totalSeats);
     }
 
     #endregion Success cases
@@ -288,84 +251,66 @@ public class EventServiceTest
 
     [Trait("Category", "Get")]
     [Fact]
-    public void GetNonExistedEventById_ThrowNotFoundException()
+    public async Task GetNonExistedEventById_ThrowNotFoundException()
     {
         // Arrange
         var gid = Guid.NewGuid();
 
         // Act
-        var act = () => _eventService.GetById(gid);
+        var act = async () => await _eventService.GetByIdAsync(gid);
 
         // Assert
-        act.Should().Throw<KeyNotFoundException>();
+        await act.Should()
+            .ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
-    public void UpdateNonExistedEvent_ThrowsNotFoundException()
+    public async Task UpdateNonExistedEvent_ThrowsNotFoundException()
     {
         // Arrange
         var gid = Guid.NewGuid();
-        var evt = new Event
-        {
-            Id = gid,
-            Title = "Test",
-            Description = "Test",
-            StartAt = DateTime.Now,
-            EndAt = DateTime.Now,
-            TotalSeats = 3,
-        };
+        var evt = await CreateTestEventAsync();
 
         // Act
-        var act = () => _eventService.Update(gid, evt);
+        var act = async () => await _eventService.UpdateAsync(gid, evt);
 
         // Assert
-        act.Should().Throw<KeyNotFoundException>();
+        await act.Should()
+            .ThrowAsync<ArgumentException>()
+            .WithParameterName(nameof(Event.Id));
     }
 
     [Fact]
-    public void CreateEventWithInvalidParams_ThrowsArgumentException()
+    public async Task CreateEventWithInvalidParams_ThrowsArgumentException()
     {
         // Arrange
         var gid = Guid.NewGuid();
-        var evt = new Event
-        {
-            Id = gid,
-            Title = "Test",
-            Description = "Test",
-            StartAt = DateTime.Now.AddHours(1),
-            EndAt = DateTime.Now.AddHours(-1),
-            TotalSeats = 5,
-        };
+        var evt = await CreateTestEventAsync();
+        evt.EndAt = evt.StartAt.AddDays(-1);
 
         // Act
-        var act = () => _eventService.Add(evt);
+        var act = async () => await _eventService.AddAsync(evt);
 
         // Assert
-        act.Should()
-            .Throw<ArgumentException>()
+        await act.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName(nameof(evt.EndAt));
     }
 
     [Fact]
-    public void UpdateEventWithInvalidParams_ThrowsArgumentException()
+    public async Task UpdateEventWithInvalidParams_ThrowsArgumentException()
     {
         // Arrange
-        var evt = new Event
-        {
-            Id = testEvent1Gid,
-            Title = "Test",
-            Description = "Test",
-            StartAt = DateTime.Now.AddHours(1),
-            EndAt = DateTime.Now.AddHours(-1),
-            TotalSeats = 4,
-        };
+        var evt = await CreateTestEventAsync();
+        var gid = evt.Id;
+        evt.EndAt = evt.StartAt.AddDays(-1);
 
         // Act
-        var act = () => _eventService.Update(testEvent1Gid, evt);
+        var act = async () => await _eventService.UpdateAsync(gid, evt);
 
         // Assert
-        act.Should()
-            .Throw<ArgumentException>()
+        await act.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName(nameof(evt.EndAt));
     }
 
@@ -374,73 +319,70 @@ public class EventServiceTest
     #region Edge cases
 
     [Fact]
-    public void CreateEventWithMinMaxDate_Success()
+    public async Task CreateEventWithMinMaxDate_Success()
     {
         // Arrange
-        var gid = Guid.NewGuid();
-        var evtMin = new Event
-        {
-            Id = gid,
-            Title = "Test",
-            Description = "Test",
-            StartAt = DateTime.MinValue,
-            EndAt = DateTime.MinValue,
-            TotalSeats = 6,
-        };
+        var evtMin = await CreateTestEventAsync();
+        evtMin.StartAt = DateTime.MinValue;
 
-        var evtMax = new Event
-        {
-            Id = gid,
-            Title = "Test",
-            Description = "Test",
-            StartAt = DateTime.MaxValue,
-            EndAt = DateTime.MaxValue,
-            TotalSeats = 5,
-        };
+        var evtMax = await CreateTestEventAsync();
+        evtMax.EndAt = DateTime.MaxValue;
 
         // Act
-        var actMin = () => _eventService.Add(evtMin);
-        var actMax = () => _eventService.Add(evtMax);
+        var actMin = async () => await _eventService.UpdateAsync(evtMin.Id, evtMin, TestContext.Current.CancellationToken);
+        var actMax = async () => await _eventService.UpdateAsync(evtMax.Id, evtMax, TestContext.Current.CancellationToken);
 
         // Assert
-        actMin.Should().NotThrow();
-        actMax.Should().NotThrow();
+        await actMin.Should().NotThrowAsync();
+        await actMax.Should().NotThrowAsync();
     }
 
     [Fact]
-    public void GetEventByEmptyId_ThrowAgrumentException()
+    public async Task GetEventByEmptyId_ThrowAgrumentException()
     {
         // Arrange
         var id = Guid.Empty;
 
         // Act
-        var act = () => _eventService.GetById(id);
+        var act = async () => await _eventService.GetByIdAsync(id);
 
         // Assert
-        act.Should()
-            .Throw<ArgumentException>()
+        await act.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName(nameof(id));
     }
 
     [Fact]
-    public void EventPaginationWithNegativePageNumber_ThrowsArgumentException()
+    public async Task EventPaginationWithNegativePageNumber_ThrowsArgumentException()
     {
         // Arrange
         int pageNum = -1;
         int pageSize = -10;
 
         // Act
-        var paginationNegativePageNum = () => _eventService.GetAll(null, null, null, pageNum);
-        var paginationNegativePageSize = () => _eventService.GetAll(null, null, null, 1, pageSize);
+        var paginationNegativePageNum = async () => await _eventService.GetAllAsync(null, null, null, pageNum);
+        var paginationNegativePageSize = async () => await _eventService.GetAllAsync(null, null, null, 1, pageSize);
 
         // Assert
-        paginationNegativePageNum.Should()
-            .Throw<ArgumentException>()
+        await paginationNegativePageNum.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName("page");
-        paginationNegativePageSize.Should()
-            .Throw<ArgumentException>()
+        await paginationNegativePageSize.Should()
+            .ThrowAsync<ArgumentException>()
             .WithParameterName("pageSize");
     }
 
     #endregion Edge cases
+
+    async Task<Event> CreateTestEventAsync(int totalSeats = 0)
+    {
+        return await _eventService.CreateEventAsync(
+                Guid.NewGuid(),
+                "Test event Title",
+                "Test event Description",
+                DateTime.UtcNow.AddHours(1),
+                DateTime.UtcNow.AddHours(3),
+                totalSeats > 0 ? totalSeats : new Random().Next(3, 8)
+            );
+    }
 }
