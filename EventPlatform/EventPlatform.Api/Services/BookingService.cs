@@ -1,12 +1,10 @@
-﻿using EventPlatform.Api.DbContexts;
-using EventPlatform.Api.Exceptions;
+﻿using EventPlatform.Api.Exceptions;
 using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Api.Services;
 
-public class BookingService(AppDbContext _context, IEventService _eventService, ILogger<BookingService> _logger) : IBookingService
+public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, ILogger<BookingService> _logger) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
     private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
@@ -20,39 +18,31 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
         await _bookingSemaphore.WaitAsync(cancellationToken);
         try
         {
-            var evt = await _eventService.GetByIdAsync(eventId); // Выбросит исключение, если событие не найдено
+            var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
+            if (evt is null)
+                throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new InvalidOperationException();
-            if (evt.TryReserveSeats())
-            {
-                try
-                {
-                    var booking = new Booking(eventId);
-                    evt.Bookings.Add(booking);
-                    _logger.LogInformation("Бронь {bookingId} добавлена в БД", booking.Id);
-                    _logger.LogInformation("Событие {eventId} обновлено в БД", evt.Id);
-                    return booking;
-                }
-                catch (Exception ex)
-                {
-                    evt.ReleaseSeats();
-                    _logger.LogError(ex, "Ошибка при сохранении Booking запроса в БД, места возвращены");
-                    throw;
-                }
-                finally
-                {
-                    await _context.SaveChangesAsync(cancellationToken);
-                }
-            }
-            else
+            if (!evt.TryReserveSeats())
             {
                 _logger.LogInformation("Booking запрос отклонен, нет доступных мест");
                 throw new NoAvailableSeatsException("Нет доступных мест для события");
             }
-        }
-        catch (Exception ex)
-        {
-            throw;
+
+            try
+            {
+                var booking = new Booking(eventId);
+                await _bookingRepository.AddAsync(booking, cancellationToken);
+                _logger.LogInformation("Бронь {bookingId} добавлена в БД", booking.Id);
+                _logger.LogInformation("Событие {eventId} обновлено в БД", evt.Id);
+                return booking;
+            }
+            catch (Exception ex)
+            {
+                evt.ReleaseSeats();
+                _logger.LogError(ex, "Ошибка при сохранении Booking запроса в БД, места возвращены");
+                throw;
+            }
         }
         finally
         {
@@ -64,7 +54,7 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
-        var booking = await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken);
         if (booking is null)
             throw new KeyNotFoundException($"Booking {bookingId} not found");
         return booking;
@@ -72,12 +62,7 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
 
     public async Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken = default, int batch = 50)
     {
-        return await _context.Bookings
-            .Where(b => b.Status == BookingStatusEnum.Pending)
-            .OrderBy(b => b.CreatedAt)
-            .Take(batch)
-            .Select(b => b.Id)
-            .ToListAsync();
+        return await _bookingRepository.GetPendingIdsAsync(batch, cancellationToken);
     }
 
     public async Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken = default)
@@ -85,63 +70,54 @@ public class BookingService(AppDbContext _context, IEventService _eventService, 
         _logger.LogInformation("Обработка брони {bookingId}", bookingId);
         try
         {
-            await Task.Delay(ProcessingDelay);
+            await Task.Delay(ProcessingDelay, stoppingToken);
 
             await _processingSemaphore.WaitAsync(stoppingToken);
-            var booking = await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, stoppingToken);
-            if (booking is null)
-                throw new KeyNotFoundException($"Booking {bookingId} not found");
             try
             {
-                var evt = await _eventService.GetByIdAsync(booking.EventId);
+                var booking = await _bookingRepository.GetByIdAsync(bookingId, stoppingToken);
+                if (booking is null)
+                    throw new KeyNotFoundException($"Booking {bookingId} not found");
+
+                var evt = await _eventRepository.GetByIdAsync(booking.EventId, stoppingToken);
                 try
                 {
-                    if (evt != null)
+                    if (evt is null)
                     {
-                        if (evt.EndAt >= DateTime.UtcNow)
-                        {
-                            booking.Confirm();
-                            _logger.LogInformation("Booking запрос {bookingId} подтвержден", booking.Id);
-                        }
-                        else
-                        {
-                            booking.Reject();
-                            evt.ReleaseSeats();
-                            _logger.LogInformation("Бронь {bookingId} от менена, мероприятие закончилось", booking.Id);
-                        }
+                        booking.Reject();
+                        _logger.LogWarning("Событие {eventId} не существует. Бронь {bookingId} отменяется.", booking.EventId, booking.Id);
+                    }
+                    else if (evt.EndAt >= DateTime.UtcNow)
+                    {
+                        booking.Confirm();
+                        _logger.LogInformation("Booking запрос {bookingId} подтвержден", booking.Id);
                     }
                     else
                     {
                         booking.Reject();
-                        _logger.LogWarning("Событие {eventId} не существует. Бронь {bookingId} отменяется.", booking.EventId, booking.Id);
+                        evt.ReleaseSeats();
+                        _logger.LogInformation("Бронь {bookingId} от менена, мероприятие закончилось", booking.Id);
                     }
                     _logger.LogInformation("Бронь {bookingId} обновлена в БД", booking.Id);
                 }
                 catch (Exception ex)
                 {
                     booking.Reject();
-                    evt.ReleaseSeats();
+                    evt?.ReleaseSeats();
                     _logger.LogWarning(ex, "Ошибка при обработке брони {bookingId}. Бронь отклонена и обновлена в БД", booking.Id);
                 }
-                finally
-                {
-                    await _context.SaveChangesAsync();
-                }
+
+                await _bookingRepository.UpdateAsync(booking, stoppingToken);
             }
-            catch (KeyNotFoundException)
+            finally
             {
-                booking.Reject();
-                await _context.SaveChangesAsync();
+                _processingSemaphore.Release();
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             _logger.LogWarning("Обработка брони {bookingId} была отменена", bookingId);
             throw;
-        }
-        finally
-        {
-            _processingSemaphore.Release();
         }
     }
 }
