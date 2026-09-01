@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Api.DbContexts;
 using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
+using EventPlatform.Api.Repositories;
 using EventPlatform.Api.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public class EventServiceTest
             builder.AddDebug();
             builder.SetMinimumLevel(LogLevel.Information);
         });
+        services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventService, EventService>();
 
         _provider = services.BuildServiceProvider();
