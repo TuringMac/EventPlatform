@@ -12,8 +12,7 @@ public class BookingRepositoryTests : IAsyncLifetime
 {
     #region Infrastructure
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:18")
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:18")
         .Build();
     private static readonly TimeSpan DatePrecision = TimeSpan.FromMilliseconds(1);
 
