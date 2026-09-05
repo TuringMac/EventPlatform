@@ -2,6 +2,7 @@ using EventPlatform.Api.Application;
 using EventPlatform.Api.DbContexts;
 using EventPlatform.Api.Infrastructure;
 using EventPlatform.Api.Presentation;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.MapControllers();
 
