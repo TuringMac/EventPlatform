@@ -1,104 +1,52 @@
-﻿using EventPlatform.Api.DbContexts;
-using EventPlatform.Api.Model;
+﻿using EventPlatform.Api.Model;
 using EventPlatform.Api.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using Testcontainers.PostgreSql;
 
 namespace EventPlatform.IntegrationTests;
 
-public class BookingRepositoryTests : IAsyncLifetime
+public class BookingRepositoryTests(PostgreSqlFixture fixture) : IClassFixture<PostgreSqlFixture>
 {
-    #region Infrastructure
-
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:18")
-        .Build();
-    private static readonly TimeSpan DatePrecision = TimeSpan.FromMilliseconds(1);
-
-    public async Task InitializeAsync()
-    {
-        await _postgres.StartAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        await _postgres.DisposeAsync();
-    }
-
-    private AppDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
-            .Options;
-
-        var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
-        return context;
-    }
-
-    private async Task ResetDatabaseAsync()
-    {
-        // Сбрасываем пул — иначе PostgreSQL не даст удалить базу
-        NpgsqlConnection.ClearAllPools();
-        await using var context = CreateContext();
-        await context.Database.ExecuteSqlRawAsync(
-            """TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE""");
-    }
-
-    private static Event NewEvent(
-        string title = "Test event",
-        int seats = 10,
-        DateTime? startAt = null,
-        DateTime? endAt = null)
-    {
-        var start = startAt ?? DateTime.UtcNow.AddHours(1);
-        var end = endAt ?? start.AddHours(2);
-        return new Event(Guid.NewGuid(), title, start, end, seats);
-    }
-
     private async Task<Event> ArrangeEventAsync(int seats = 10)
     {
-        var evt = NewEvent(seats: seats);
-        await using var arrangeContext = CreateContext();
+        var evt = PostgreSqlFixture.NewEvent(seats: seats);
+        await using var arrangeContext = fixture.CreateContext();
         arrangeContext.Events.Add(evt);
         await arrangeContext.SaveChangesAsync();
         return evt;
     }
 
-    #endregion Infrastructure
-
     [Fact]
     public async Task AddAsync_PersistsBooking()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync();
         var booking = new Booking(evt.Id);
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
 
         // Act
         await repository.AddAsync(booking);
 
         // Assert
-        await using var verify = CreateContext();
+        await using var verify = fixture.CreateContext();
         var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
         saved.EventId.Should().Be(evt.Id);
         saved.Status.Should().Be(BookingStatusEnum.Pending);
         saved.ProcessedAt.Should().BeNull();
-        saved.CreatedAt.Should().BeCloseTo(booking.CreatedAt, DatePrecision);
+        saved.CreatedAt.Should().BeCloseTo(booking.CreatedAt, PostgreSqlFixture.DatePrecision);
     }
 
     [Fact]
     public async Task AddAsync_PersistsBookingAndReservedSeats_WhenEventIsTracked()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync(seats: 4);
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var eventRepository = new EventRepository(context);
         var bookingRepository = new BookingRepository(context);
         var tracked = await eventRepository.GetByIdAsync(evt.Id);
@@ -109,7 +57,7 @@ public class BookingRepositoryTests : IAsyncLifetime
         await bookingRepository.AddAsync(booking);
 
         // Assert
-        await using var verify = CreateContext();
+        await using var verify = fixture.CreateContext();
         var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
         var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id);
         savedBooking.EventId.Should().Be(evt.Id);
@@ -120,16 +68,16 @@ public class BookingRepositoryTests : IAsyncLifetime
     public async Task GetByIdAsync_ReturnsBooking()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync();
         var booking = new Booking(evt.Id);
-        await using (var arrangeContext = CreateContext())
+        await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(booking);
             await arrangeContext.SaveChangesAsync();
         }
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
 
         // Act
@@ -146,8 +94,8 @@ public class BookingRepositoryTests : IAsyncLifetime
     public async Task GetByIdAsync_WhenMissing_ReturnsNull()
     {
         // Arrange
-        await ResetDatabaseAsync();
-        await using var context = CreateContext();
+        await fixture.ResetDatabaseAsync();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
 
         // Act
@@ -161,16 +109,16 @@ public class BookingRepositoryTests : IAsyncLifetime
     public async Task UpdateAsync_PersistsConfirmedStatus()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync();
         var booking = new Booking(evt.Id);
-        await using (var arrangeContext = CreateContext())
+        await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(booking);
             await arrangeContext.SaveChangesAsync();
         }
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
         var tracked = await repository.GetByIdAsync(booking.Id);
         tracked!.Confirm();
@@ -179,21 +127,21 @@ public class BookingRepositoryTests : IAsyncLifetime
         await repository.UpdateAsync(tracked);
 
         // Assert
-        await using var verify = CreateContext();
+        await using var verify = fixture.CreateContext();
         var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
         saved.Status.Should().Be(BookingStatusEnum.Confirmed);
         saved.ProcessedAt.Should().NotBeNull();
-        saved.ProcessedAt.Should().BeCloseTo(tracked.ProcessedAt!.Value, DatePrecision);
+        saved.ProcessedAt.Should().BeCloseTo(tracked.ProcessedAt!.Value, PostgreSqlFixture.DatePrecision);
     }
 
     [Fact]
     public async Task UpdateAsync_PersistsRejectedStatusAndReleasedSeats_WhenEventIsTracked()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync(seats: 2);
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var eventRepository = new EventRepository(context);
         var bookingRepository = new BookingRepository(context);
         var trackedEvent = await eventRepository.GetByIdAsync(evt.Id);
@@ -209,7 +157,7 @@ public class BookingRepositoryTests : IAsyncLifetime
         await bookingRepository.UpdateAsync(trackedBooking);
 
         // Assert
-        await using var verify = CreateContext();
+        await using var verify = fixture.CreateContext();
         var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
         var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id);
         savedBooking.Status.Should().Be(BookingStatusEnum.Rejected);
@@ -221,14 +169,14 @@ public class BookingRepositoryTests : IAsyncLifetime
     public async Task GetPendingIdsAsync_ReturnsOnlyPendingOrderedByCreatedAt()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync();
         var first = new Booking(evt.Id);
         var second = new Booking(evt.Id);
         var confirmed = new Booking(evt.Id);
         confirmed.Confirm();
 
-        await using (var arrangeContext = CreateContext())
+        await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(first);
             await arrangeContext.SaveChangesAsync();
@@ -238,7 +186,7 @@ public class BookingRepositoryTests : IAsyncLifetime
             await arrangeContext.SaveChangesAsync();
         }
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
 
         // Act
@@ -253,15 +201,15 @@ public class BookingRepositoryTests : IAsyncLifetime
     public async Task GetPendingIdsAsync_RespectsBatchSize()
     {
         // Arrange
-        await ResetDatabaseAsync();
+        await fixture.ResetDatabaseAsync();
         var evt = await ArrangeEventAsync();
-        await using (var arrangeContext = CreateContext())
+        await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.AddRange(new Booking(evt.Id), new Booking(evt.Id), new Booking(evt.Id));
             await arrangeContext.SaveChangesAsync();
         }
 
-        await using var context = CreateContext();
+        await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
 
         // Act
