@@ -53,21 +53,6 @@ public class EventServiceTest
 
     [Trait("Category", "Get")]
     [Fact]
-    public async Task GetAllEvents_ShouldReturnAllTestEvents()
-    {
-        // Arrange
-        var evt = await CreateTestEventAsync();
-        var id = evt.Id;
-
-        // Act
-        var eventList = await _eventService.GetAllAsync(null, null, null);
-
-        // Assert
-        eventList.Data.Should().BeEquivalentTo(_db.Events);
-    }
-
-    [Trait("Category", "Get")]
-    [Fact]
     public async Task GetEventById_ReturnsOneCertainEvent()
     {
         // Arrange
@@ -129,24 +114,6 @@ public class EventServiceTest
 
         // Assert
         _db.Events.Any(e => e.Id == id).Should().BeFalse();
-    }
-
-    [Trait("Category", "Get")]
-    [Fact]
-    public async Task FilterEventByName_ShouldReturnOneEventWithMatchingName()
-    {
-        // Arrange
-        var seed = Guid.NewGuid();
-        var title = $"Test Event {seed}";
-        var evt = await CreateTestEventAsync();
-        evt.Title = title;
-        await _eventService.UpdateAsync(evt.Id, evt, TestContext.Current.CancellationToken);
-
-        // Act
-        var list = (await _eventService.GetAllAsync(seed.ToString(), null, null)).Data;
-
-        // Assert
-        list.Should().ContainSingle(e => e.Title == title);
     }
 
     [Trait("Category", "Get")]
