@@ -35,7 +35,7 @@ public class EventRepository(AppDbContext _context) : IEventRepository
     {
         var eventsQuery = _context.Events.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(title))
-            eventsQuery = eventsQuery.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            eventsQuery = eventsQuery.Where(e => EF.Functions.ILike(e.Title, $"%{title}%"));
         if (from.HasValue && from > DateTime.MinValue)
             eventsQuery = eventsQuery.Where(e => e.EndAt >= from);
         if (to.HasValue && to < DateTime.MaxValue)
