@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Windows and WSL share this tree via /mnt/f. Separate intermediates so
+         RazorLangVersion in GeneratedMSBuildEditorConfig.editorconfig is not read with a trailing CR (RZ3600). -->
+    <BaseIntermediateOutputPath>obj\$(OS)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin\$(OS)\</BaseOutputPath>
+    <!-- After changing output paths, MSBuild only excludes the active path.
+         Keep the whole bin/obj trees out of Compile to avoid CS0579 from stale artifacts. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin\**;obj\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
