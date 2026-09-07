@@ -163,6 +163,14 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
 
 ## База данных
 
+### Репозиторный слой
+
+Доступ к данным инкапсулирован в репозиториях `EventRepository` и `BookingRepository`. Репозитории реализуют интерфейсы `IEventRepository` и `IBookingRepository`, используют `AppDbContext`, а бизнес-логика взаимодействует с ними через эти интерфейсы.
+
+Интеграционные тесты проверяют репозитории на реальном PostgreSQL. Для этого используется Testcontainers: перед запуском тестов автоматически создается и запускается контейнер PostgreSQL, после чего применяются миграции базы данных. Для работы Testcontainers во время выполнения `dotnet test` должен быть запущен Docker.
+
+### Управление миграциями
+
 Создание миграций `dotnet ef migrations add init --project .\EventPlatform\EventPlatform.Api`  
 Ручное выполнение миграций `dotnet ef database update --project .\EventPlatform\EventPlatform.Api`  
 
