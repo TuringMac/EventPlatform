@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.IntegrationTests;
 
-public class EventRepositoryTests(PostgreSqlFixture fixture) : IClassFixture<PostgreSqlFixture>
+[Collection("PostgreSql")]
+public class EventRepositoryTests(PostgreSqlFixture fixture)
 {
     private static readonly TimeSpan DatePrecision = TimeSpan.FromMilliseconds(1);
 

@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.IntegrationTests;
 
-public class BookingRepositoryTests(PostgreSqlFixture fixture) : IClassFixture<PostgreSqlFixture>
+[Collection("PostgreSql")]
+public class BookingRepositoryTests(PostgreSqlFixture fixture)
 {
     private async Task<Event> ArrangeEventAsync(int seats = 10)
     {
