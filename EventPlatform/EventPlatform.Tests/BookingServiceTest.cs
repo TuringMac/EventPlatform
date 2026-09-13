@@ -2,6 +2,7 @@
 using EventPlatform.Api.Exceptions;
 using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
+using EventPlatform.Api.Repositories;
 using EventPlatform.Api.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,8 @@ public class BookingServiceTest
             builder.AddDebug();
             builder.SetMinimumLevel(LogLevel.Information);
         });
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
 

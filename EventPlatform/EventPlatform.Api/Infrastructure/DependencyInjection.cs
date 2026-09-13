@@ -1,4 +1,6 @@
 ﻿using EventPlatform.Api.DbContexts;
+using EventPlatform.Api.Interfaces;
+using EventPlatform.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Api.Infrastructure;
@@ -13,6 +15,9 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
 
         return services;
     }

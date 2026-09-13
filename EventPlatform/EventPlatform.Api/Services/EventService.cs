@@ -1,11 +1,9 @@
-﻿using EventPlatform.Api.DbContexts;
-using EventPlatform.Api.Interfaces;
+﻿using EventPlatform.Api.Interfaces;
 using EventPlatform.Api.Model;
-using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Api.Services;
 
-public class EventService(AppDbContext _context, ILogger<EventService> _logger) : IEventService
+public class EventService(IEventRepository _eventRepository, ILogger<EventService> _logger) : IEventService
 {
     public async Task<Event> CreateEventAsync(
         Guid id,
@@ -25,21 +23,19 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         {
             Description = description,
         };
-        _context.Events.Add(evt);
-        await _context.SaveChangesAsync();
+        await _eventRepository.AddAsync(evt);
         return evt;
     }
 
     public async Task AddAsync(Event obj, CancellationToken cancellationToken = default)
     {
         ValidateEvent(obj);
-        _context.Events.Add(obj);
-        await _context.SaveChangesAsync();
+        await _eventRepository.AddAsync(obj, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        if ((await _context.Events.Where(e => e.Id == eventId).ExecuteDeleteAsync(cancellationToken)) == 0)
+        if (await _eventRepository.DeleteAsync(eventId, cancellationToken) == 0)
             throw new KeyNotFoundException();
     }
 
@@ -53,47 +49,32 @@ public class EventService(AppDbContext _context, ILogger<EventService> _logger) 
         if (safePageSize < 1)
             throw new ArgumentException("Размер страницы должен быть положительным", nameof(pageSize));
 
-        var eventsQuery = _context.Events.AsNoTracking();
-        // Фильтрация
-        if (!string.IsNullOrWhiteSpace(title))
-            eventsQuery = eventsQuery.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
-        if (from.HasValue && from > DateTime.MinValue)
-            eventsQuery = eventsQuery.Where(e => e.EndAt >= from);
-        if (to.HasValue && to < DateTime.MaxValue)
-            eventsQuery = eventsQuery.Where(e => e.StartAt <= to);
-
-        // Пагинация
-        var totalAmount = await eventsQuery.CountAsync();
-        var events = await eventsQuery.Skip((safePage - 1) * safePageSize).Take(safePageSize).ToListAsync();
-
-        var pageItems = events.Count();
+        var (events, currentPage, pageItems, totalAmount) = await _eventRepository.GetPagedAsync(title, from, to, safePage, safePageSize);
         _logger.LogInformation("Query filtered: {totalAmount}; Items on page {pageItems}", totalAmount, pageItems);
-        return new PaginatedResult<Event> { Data = events, CurrentPage = safePage, PageItems = pageItems, TotalItems = totalAmount };
+
+        return new PaginatedResult<Event> { Data = events, CurrentPage = currentPage, PageItems = pageItems, TotalItems = totalAmount };
     }
 
     public async Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         ValidateGuid(id);
-        var evt = await _context.Events
-            .SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
+        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);
         if (evt is null)
             throw new KeyNotFoundException($"Event {id} not found");
-        _context.Entry(evt).Collection(o => o.Bookings).Load();
         return evt;
     }
 
     public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken = default)
     {
         ValidateEvent(id, obj);
-        var evt = await _context.Events
-            .SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
+        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);
         if (evt is null)
             throw new KeyNotFoundException($"Event {id} not found");
         evt.Title = obj.Title;
         evt.Description = obj.Description;
         evt.StartAt = obj.StartAt;
         evt.EndAt = obj.EndAt;
-        await _context.SaveChangesAsync();
+        await _eventRepository.UpdateAsync(evt, cancellationToken);
     }
 
     void ValidateEvent(Event obj)
