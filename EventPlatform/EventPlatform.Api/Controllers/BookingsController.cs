@@ -1,10 +1,9 @@
-﻿using EventPlatform.Api.Interfaces;
-using EventPlatform.Api.Model;
-using Microsoft.AspNetCore.Http;
+﻿using EventPlatform.Application.Interfaces;
+using EventPlatform.Domain.Model;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
-namespace EventPlatform.Api.Controllers;
+namespace EventPlatform.Domain.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]

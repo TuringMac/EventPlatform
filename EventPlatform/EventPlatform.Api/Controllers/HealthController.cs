@@ -1,7 +1,7 @@
-﻿using EventPlatform.Api.DbContexts;
+﻿using EventPlatform.Domain.DbContexts;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EventPlatform.Api.Controllers;
+namespace EventPlatform.Domain.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

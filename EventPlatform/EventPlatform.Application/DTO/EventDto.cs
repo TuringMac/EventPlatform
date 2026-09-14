@@ -1,0 +1,21 @@
+﻿using EventPlatform.Domain.Interfaces;
+using System.ComponentModel.DataAnnotations;
+
+namespace EventPlatform.Domain.Model;
+
+public class EventDto
+{
+    public required Guid Id { get; init; }
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Название обязательно для заполнения")]
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    //[Range(typeof(DateTime), "2026-01-01", "2026-12-31",
+    //    ErrorMessage = "Дата должна быть за 2026г.")]
+    public required DateTime StartAt { get; set; }
+    //[Range(typeof(DateTime), "2026-01-01", "2026-12-31",
+    //    ErrorMessage = "Дата должна быть за 2026г.")]
+    public required DateTime EndAt { get; set; }
+    [Range(1, int.MaxValue, ErrorMessage = "Количество мест должно быть больше ноля")]
+    public required int TotalSeats { get; set; }
+    public int? SeatsAvailable { get; }
+}

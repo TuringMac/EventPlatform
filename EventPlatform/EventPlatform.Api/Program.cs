@@ -1,7 +1,8 @@
-using EventPlatform.Api.Application;
-using EventPlatform.Api.DbContexts;
-using EventPlatform.Api.Infrastructure;
-using EventPlatform.Api.Presentation;
+using EventPlatform.Api;
+using EventPlatform.Domain;
+using EventPlatform.Domain.DbContexts;
+using EventPlatform.Domain.Infrastructure;
+using EventPlatform.Application;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
