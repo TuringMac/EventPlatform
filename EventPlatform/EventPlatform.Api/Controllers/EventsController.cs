@@ -1,11 +1,12 @@
-﻿using EventPlatform.Application.Interfaces;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
-namespace EventPlatform.Domain.Controllers;
+namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]

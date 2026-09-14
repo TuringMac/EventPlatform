@@ -1,10 +1,9 @@
 ﻿using EventPlatform.Application.Interfaces;
-using EventPlatform.Domain.DbContexts;
-using EventPlatform.Domain.Interfaces;
+using EventPlatform.Infrastructure.DbContexts;
 using EventPlatform.Domain.Model;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventPlatform.Domain.Repositories;
+namespace EventPlatform.Infrastructure.Repositories;
 
 public class EventRepository(AppDbContext _context) : IEventRepository
 {

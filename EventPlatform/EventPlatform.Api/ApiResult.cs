@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace EventPlatform.Domain;
+namespace EventPlatform.Api;
 
 // Класс ApiResult c возвращаемыми данными
 // Наследуемся от базового класса с основными параметрами

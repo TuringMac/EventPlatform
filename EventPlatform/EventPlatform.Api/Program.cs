@@ -1,7 +1,6 @@
 using EventPlatform.Api;
-using EventPlatform.Domain;
-using EventPlatform.Domain.DbContexts;
-using EventPlatform.Domain.Infrastructure;
+using EventPlatform.Infrastructure.DbContexts;
+using EventPlatform.Infrastructure;
 using EventPlatform.Application;
 using Microsoft.EntityFrameworkCore;
 

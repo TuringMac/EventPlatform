@@ -1,8 +1,8 @@
-﻿namespace EventPlatform.Domain.DbContexts.Configurations;
-
-using EventPlatform.Domain.Model;
+﻿using EventPlatform.Domain.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace EventPlatform.Infrastructure.DbContexts.Configurations;
 
 public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 {

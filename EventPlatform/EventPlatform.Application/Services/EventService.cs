@@ -1,4 +1,5 @@
-﻿using EventPlatform.Application.Interfaces;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
 using Microsoft.Extensions.Logging;
 

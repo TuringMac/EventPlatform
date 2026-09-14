@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
-namespace EventPlatform.Domain.DbContexts;
+namespace EventPlatform.Infrastructure.DbContexts;
 
 public class AppDbContext : DbContext
 {

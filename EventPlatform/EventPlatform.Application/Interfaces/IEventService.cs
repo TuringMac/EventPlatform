@@ -1,4 +1,5 @@
-﻿using EventPlatform.Domain.Model;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Domain.Model;
 
 namespace EventPlatform.Application.Interfaces;
 

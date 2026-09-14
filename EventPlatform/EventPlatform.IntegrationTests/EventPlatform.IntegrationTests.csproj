@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EventPlatform.Api\EventPlatform.Api.csproj" />
+    <ProjectReference Include="..\EventPlatform.Infrastructure\EventPlatform.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

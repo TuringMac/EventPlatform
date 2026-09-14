@@ -1,4 +1,4 @@
-﻿namespace EventPlatform.Domain;
+﻿namespace EventPlatform.Api;
 
 public static class DependencyInjection
 {

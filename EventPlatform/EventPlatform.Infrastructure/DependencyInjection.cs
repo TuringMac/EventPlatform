@@ -1,11 +1,11 @@
 ﻿using EventPlatform.Application.Interfaces;
-using EventPlatform.Domain.DbContexts;
-using EventPlatform.Domain.Repositories;
+using EventPlatform.Infrastructure.DbContexts;
+using EventPlatform.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EventPlatform.Domain.Infrastructure;
+namespace EventPlatform.Infrastructure;
 
 public static class DependencyInjection
 {

@@ -1,7 +1,6 @@
-﻿using EventPlatform.Domain.Interfaces;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace EventPlatform.Domain.Model;
+namespace EventPlatform.Application.DTO;
 
 public class EventDto
 {

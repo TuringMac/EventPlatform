@@ -1,4 +1,4 @@
-﻿namespace EventPlatform.Domain.Model;
+﻿namespace EventPlatform.Application.DTO;
 
 public class PaginatedResult<T>
 {

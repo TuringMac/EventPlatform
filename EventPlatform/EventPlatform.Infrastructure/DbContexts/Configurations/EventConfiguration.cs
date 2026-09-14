@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace EventPlatform.Domain.DbContexts.Configurations;
+namespace EventPlatform.Infrastructure.DbContexts.Configurations;
 
 public class EventConfiguration : IEntityTypeConfiguration<Event>
 {

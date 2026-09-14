@@ -3,7 +3,7 @@ using EventPlatform.Domain.Model;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
-namespace EventPlatform.Domain.Controllers;
+namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
