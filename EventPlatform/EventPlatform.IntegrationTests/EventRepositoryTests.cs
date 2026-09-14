@@ -1,5 +1,5 @@
 ﻿using EventPlatform.Domain.Model;
-using EventPlatform.Domain.Repositories;
+using EventPlatform.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 

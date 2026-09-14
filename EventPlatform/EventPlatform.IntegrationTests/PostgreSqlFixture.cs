@@ -1,5 +1,5 @@
-using EventPlatform.Domain.DbContexts;
 using EventPlatform.Domain.Model;
+using EventPlatform.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
