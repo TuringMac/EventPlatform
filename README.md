@@ -6,12 +6,12 @@ PostgreSQL
 
 ## Запуск приложения
 
-1. Получение `git clone -b sprint-6 https://github.com/TuringMac/EventPlatform`  
+1. Получение `git clone -b sprint-7 https://github.com/TuringMac/EventPlatform`  
 2. Сборка `dotnet build ./EventPlatform/EventPlatform.Api`  
 3. Строка подключения в файле **appsettings.Development.json**: `Host=<server>;Port=5432;Database=<db_name>;Username=postgres;Password=postgres` где:  
 3.1. Host - адрес сервера;  
 3.2. Database название БД;  
-3.3. Username/Password учетные данные подключаемого пользователя.   
+3.3. Username/Password учетные данные подключаемого пользователя.  
 4. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
 5. БД создается автоматически Миграциями  
 6. API https://localhost:7068  
@@ -171,10 +171,58 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
 
 ### Управление миграциями
 
-Создание миграций `dotnet ef migrations add init --project .\EventPlatform\EventPlatform.Api`  
-Ручное выполнение миграций `dotnet ef database update --project .\EventPlatform\EventPlatform.Api`  
+Создание миграций `dotnet ef migrations add init --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
+Ручное выполнение миграций `dotnet ef database update --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
+
+## Структура проекта
+
+Проект разделен на слои по принципам Clean Architecture. Зависимости направлены от внешних слоев к внутренним: API использует Application и Infrastructure, Application использует Domain, а Domain не зависит от остальных слоев.
+
+### EventPlatform.Domain
+
+Ядро предметной области. Содержит сущности `Event` и `Booking`, перечисления, доменные исключения и базовые доменные интерфейсы. Этот слой не знает о базе данных, ASP.NET Core, инфраструктуре или способе доставки запросов.
+
+### EventPlatform.Application
+
+Слой сценариев использования и бизнес-логики приложения. Содержит:
+
+- интерфейсы сервисов и репозиториев;
+- сервисы мероприятий и бронирований;
+- DTO для обмена данными с API;
+- `BookingBackgroundService`, который периодически обрабатывает ожидающие бронирования.
+
+Слой определяет контракты (`IEventService`, `IBookingService`, `IEventRepository`, `IBookingRepository`), но не содержит конкретной реализации доступа к PostgreSQL.
+
+### EventPlatform.Infrastructure
+
+Слой реализации внешних технических зависимостей. Содержит:
+
+- `AppDbContext` и конфигурации сущностей Entity Framework Core;
+- реализации `EventRepository` и `BookingRepository`;
+- PostgreSQL-провайдер Npgsql;
+- миграции базы данных.
+
+Регистрация `DbContext` и репозиториев выполняется методом `AddInfrastructure`.
+
+### EventPlatform.Api
+
+Внешний HTTP-слой приложения ASP.NET Core. Содержит контроллеры мероприятий, бронирований и проверки состояния, DTO-ответы, обработчик исключений и конфигурацию HTTP pipeline. Регистрация API выполняется методом `AddPresentation`.
+
+При запуске API регистрирует Application и Infrastructure, применяет миграции базы данных и публикует HTTP endpoints.
+
+### EventPlatform.Tests
+
+Модульные тесты сервисов Application. Для изоляции от PostgreSQL используют EF Core In-Memory и проверяют сценарии мероприятий, бронирований, ограничения мест и конкурентную обработку.
+
+### EventPlatform.IntegrationTests
+
+Интеграционные тесты репозиториев Infrastructure на реальном PostgreSQL. База запускается в контейнере через Testcontainers, поэтому перед запуском этих тестов должен быть доступен Docker.
 
 ## Changelog
+
+### Sprint-7
+
+- Разделение решения на логические проекты, соответствующие уровням приложения (Domain, Application, Infrastructure, Presentation)
 
 ### Sprint-6
 

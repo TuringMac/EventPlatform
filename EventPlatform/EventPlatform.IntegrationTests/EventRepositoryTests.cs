@@ -1,5 +1,5 @@
-﻿using EventPlatform.Api.Model;
-using EventPlatform.Api.Repositories;
+﻿using EventPlatform.Domain.Model;
+using EventPlatform.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
