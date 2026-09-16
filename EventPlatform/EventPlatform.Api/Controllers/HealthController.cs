@@ -1,4 +1,4 @@
-﻿using EventPlatform.Api.DbContexts;
+﻿using EventPlatform.Infrastructure.DbContexts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EventPlatform.Api.Controllers;

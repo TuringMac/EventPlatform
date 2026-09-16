@@ -1,5 +1,6 @@
-﻿using EventPlatform.Api.Interfaces;
-using EventPlatform.Api.Model;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Application.Interfaces;
+using EventPlatform.Domain.Model;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 

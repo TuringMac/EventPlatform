@@ -1,8 +1,9 @@
-﻿using EventPlatform.Api.DbContexts;
-using EventPlatform.Api.Interfaces;
-using EventPlatform.Api.Model;
-using EventPlatform.Api.Repositories;
-using EventPlatform.Api.Services;
+﻿using EventPlatform.Application.Interfaces;
+using EventPlatform.Application.Services;
+using EventPlatform.Domain.Interfaces;
+using EventPlatform.Domain.Model;
+using EventPlatform.Infrastructure.DbContexts;
+using EventPlatform.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

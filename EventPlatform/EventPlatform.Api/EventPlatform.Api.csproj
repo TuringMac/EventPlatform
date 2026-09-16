@@ -14,8 +14,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.10.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventPlatform.Application\EventPlatform.Application.csproj" />
+    <ProjectReference Include="..\EventPlatform.Domain\EventPlatform.Domain.csproj" />
+    <ProjectReference Include="..\EventPlatform.Infrastructure\EventPlatform.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
