@@ -4,8 +4,6 @@ using EventPlatform.Domain.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -17,8 +15,7 @@ internal class UserService(IUserRepository userRepository, ILogger<UserService> 
 {
     public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        var hashedPassword = Convert.ToHexString(bytes);
+        var hashedPassword = password.ToHashString();
         var user = await userRepository.GetUserByLoginHashedPassword(login, hashedPassword, cancellationToken);
         logger.LogInformation("Пользователь аутентифицирован: {UserId}, {Login}", user.Id, user.Login);
 
@@ -61,17 +58,11 @@ internal class UserService(IUserRepository userRepository, ILogger<UserService> 
 
     public async Task<User> CreateAsync(UserRequest entity, CancellationToken cancellationToken)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(entity.Password));
-        var hashedPassword = Convert.ToHexString(bytes);
+        var hashedPassword = entity.Password.ToHashString();
         var user = new User(entity.Login, hashedPassword, entity.Role);
         await userRepository.AddAsync(user, cancellationToken);
         logger.LogInformation("Пользователь создан: {UserId}, {Login}", user.Id, user.Login);
         return user;
-    }
-
-    public async Task AddAsync(User entity, CancellationToken cancellationToken)
-    {
-        await userRepository.AddAsync(entity, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
@@ -95,7 +86,7 @@ internal class UserService(IUserRepository userRepository, ILogger<UserService> 
     {
         var user = await userRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Пользователь с идентификатором {id} не найден.");
-        var passwordHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(entity.Password)));
+        var passwordHash = entity.Password.ToHashString();
 
         user.Update(entity.Login, passwordHash, entity.Role);
         await userRepository.UpdateAsync(id, user, cancellationToken);

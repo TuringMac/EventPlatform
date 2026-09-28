@@ -70,15 +70,12 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
     public async Task<ActionResult<ApiResult>> CancelBookingById(Guid bookingId, CancellationToken cancellationToken)
     {
         await _bookingService.CancelBookingByIdAsync(bookingId, cancellationToken);
-        return AcceptedAtAction(
-            nameof(GetById),
-            new { id = bookingId },
-            new ApiBaseResult
-            {
-                Success = true,
-                StatusCode = HttpStatusCode.NoContent,
-                Message = "Бронирование отменено"
-            });
+        return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
+        {
+            Success = true,
+            StatusCode = HttpStatusCode.NoContent,
+            Message = "Бронирование отменено"
+        });
     }
 
     [HttpDelete("~/api/events/{eventId:guid}/book")]
@@ -88,14 +85,11 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             return Forbid();
         var userId = currentUserId;
         var book = await _bookingService.CancelBookingAsync(eventId, userId, cancellationToken);
-        return AcceptedAtAction(
-            nameof(GetById),
-            new { id = book.Id },
-            new ApiBaseResult
-            {
-                Success = true,
-                StatusCode = HttpStatusCode.NoContent,
-                Message = "Бронирование отменено"
-            });
+        return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
+        {
+            Success = true,
+            StatusCode = HttpStatusCode.NoContent,
+            Message = "Бронирование отменено"
+        });
     }
 }

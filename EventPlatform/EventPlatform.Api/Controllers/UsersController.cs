@@ -72,7 +72,7 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
         await userService.DeleteAsync(id, cancellationToken);
         logger.LogDebug("Пользователь {Id} удален", id);
 
-        return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
+        return StatusCode((int)HttpStatusCode.NoContent, new ApiBaseResult
         {
             Success = true,
             StatusCode = HttpStatusCode.NoContent,
