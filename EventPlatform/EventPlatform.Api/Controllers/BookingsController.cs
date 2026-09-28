@@ -1,10 +1,13 @@
 ﻿using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Security.Claims;
 
 namespace EventPlatform.Api.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class BookingsController(IBookingService _bookingService) : ControllerBase

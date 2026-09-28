@@ -1,7 +1,7 @@
 using EventPlatform.Api;
-using EventPlatform.Infrastructure.DbContexts;
-using EventPlatform.Infrastructure;
 using EventPlatform.Application;
+using EventPlatform.Infrastructure;
+using EventPlatform.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,10 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddPresentation();
+builder.Services.AddPresentation(builder.Configuration);
 
-// Памятка на будущее. Как я понимаю, это более современное решение .NET8+
-// Register ProblemDetails and your custom exception handler
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -42,13 +40,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    await db.Database.MigrateAsync();
 }
 
 app.MapControllers();

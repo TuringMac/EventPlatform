@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Application.DTO;
 using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -8,11 +9,12 @@ using System.Net;
 
 namespace EventPlatform.Api.Controllers;
 
+[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class EventsController(IEventService _eventService, IBookingService _bookingService, ILogger<EventsController> _logger) : ControllerBase
 {
-    // CancellationToken как заметка для себя, что так можно получить
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ApiResult<PaginatedResult<Event>>> Get(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to, int? page, int? pageSize)
     {
@@ -36,6 +38,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
     [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     //[ResponseCache(Duration = 60)]
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiBaseResult>> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -49,6 +52,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
         };
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<ApiResult>> Post([FromBody] EventDto value, CancellationToken cancellationToken = default)
     {
@@ -78,7 +82,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
     /// <response code="409">Нет доступных мест на мероприятие</response>
     [HttpPost("{eventId:guid}/book")]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
+    [Authorize(Roles = "Admin")]
     {
         var book = await _bookingService.CreateBookingAsync(eventId, cancellationToken);
         return AcceptedAtAction(
@@ -114,6 +118,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
         });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
     {
@@ -133,6 +138,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
         });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Delete(Guid id, CancellationToken cancellationToken)
     {
