@@ -1,11 +1,12 @@
 ﻿using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace EventPlatform.Application.Services;
 
-public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, ILogger<BookingService> _logger) : IBookingService
+public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, IConfiguration configuration, ILogger<BookingService> _logger) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
     private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
@@ -25,7 +26,11 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
             if (evt is null)
                 throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Событие уже завершилось");
+            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) > int.Parse(configuration["Booking:PerUserLimit"]
+                    ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")))
+                throw new InvalidOperationException("Достигнут лимит Броней для Пользователя: " + userId);
+
             if (!evt.TryReserveSeats())
             {
                 _logger.LogInformation("Booking запрос отклонен, нет доступных мест");

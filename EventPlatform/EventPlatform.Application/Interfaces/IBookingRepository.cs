@@ -12,4 +12,5 @@ public interface IBookingRepository
     Task<IReadOnlyList<Booking>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task AddAsync(Booking booking, CancellationToken cancellationToken);
     Task UpdateAsync(Booking booking, CancellationToken cancellationToken);
+    Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken);
 }
