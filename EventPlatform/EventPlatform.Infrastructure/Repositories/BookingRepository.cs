@@ -44,6 +44,11 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
         return await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
     }
 
+    public async Task<Booking?> GetByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken)
+    {
+        return await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Booking>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await _context.Bookings

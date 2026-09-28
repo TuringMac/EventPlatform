@@ -11,54 +11,22 @@ using System.Text;
 
 namespace EventPlatform.Application.Services;
 
-internal class UserService(IUserRepository userRepository, ILogger<UserService> logger, IConfiguration configuration) : IUserService
+internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, ILogger<UserService> logger, IConfiguration configuration) : IUserService
 {
     public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
     {
-        var hashedPassword = password.ToHashString();
-        var user = await userRepository.GetUserByLogin(login, cancellationToken);        
-        if (user == null || user.PasswordHash != hashedPassword)
-        {
+        var user = await userRepository.GetUserByLogin(login, cancellationToken);
+        if (user == null || user.PasswordHash != password.ToHashString())
             throw new UnauthorizedAccessException("Неверный логин или пароль.");
-        }
-
         logger.LogInformation("Пользователь аутентифицирован: {UserId}, {Login}", user.Id, user.Login);
 
-        // Создание списка утверждений
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Login),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
-            // Остальные необходимые утверждения
-        };
+        var token = await tokenGenerator.GenerateToken(
+            user,
+            configuration["Jwt:Key"] ?? throw new InvalidOperationException("Ключ JWT не настроен."),
+            int.Parse(configuration["Jwt:Lifetime"] ?? "15"), cancellationToken);
+        logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, login);
 
-        var jwtSecret = configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("Ключ JWT не настроен.");
-
-        // Создание ключа и учётных данных для подписи
-        var secretBytes = Encoding.UTF8.GetBytes(jwtSecret);
-        if (secretBytes.Length < 32)
-        {
-            throw new InvalidOperationException($"Ключ JWT должен быть не менее 32 байт. Текущий размер: {secretBytes.Length} байт.");
-        }
-        var key = new SymmetricSecurityKey(secretBytes);
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        // Формирование объекта токена
-        var token = new JwtSecurityToken(
-            issuer: "EventPlatform.AuthServer",
-            audience: "EventPlatform.Api",
-            claims: claims,
-            expires: DateTime.Now.AddMinutes(int.Parse(configuration["Jwt:Lifetime"] ?? "15")),
-            signingCredentials: creds
-        );
-
-        // Запись в строку и отправка клиенту
-        string accessToken = new JwtSecurityTokenHandler().WriteToken(token);
-        logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, user.Login);
-
-        return accessToken;
+        return token;
     }
 
     public async Task<User> CreateAsync(UserRequest entity, CancellationToken cancellationToken)

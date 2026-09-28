@@ -27,7 +27,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
                 throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new EventEndedException("Событие уже завершилось");
-            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) > int.Parse(configuration["Booking:PerUserLimit"]
+            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= int.Parse(configuration["Booking:PerUserLimit"]
                     ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")))
                 throw new BookingLimitReachedException("Достигнут лимит Броней для Пользователя: " + userId);
 
@@ -82,10 +82,16 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
-        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken);
-        if (booking is null)
-            throw new KeyNotFoundException($"Booking {bookingId} not found");
-        return booking;
+        return await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking {bookingId} not found");
+    }
+
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken)
+    {
+        if (bookingId == Guid.Empty)
+            throw new ArgumentNullException(nameof(bookingId));
+        return await _bookingRepository.GetByIdAsync(bookingId, userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException($"User {userId} is not authorized to access Booking {bookingId}");
     }
 
     public async Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)

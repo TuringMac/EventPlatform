@@ -47,6 +47,7 @@ public static class DependencyInjection
                 }));
 
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<ITokenGenerator, TokenGenerator>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
 

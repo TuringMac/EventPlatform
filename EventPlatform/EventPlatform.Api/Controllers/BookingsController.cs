@@ -7,23 +7,36 @@ using System.Security.Claims;
 
 namespace EventPlatform.Api.Controllers;
 
-[Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class BookingsController(IBookingService _bookingService) : ControllerBase
 {
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiBaseResult>> GetById(Guid id, CancellationToken cancellationToken)
     {
+        Booking booking = null!;
+        if (User.IsInRole(nameof(UserRoleEnum.Admin)))
+            // Админ видит все брони
+            booking = await _bookingService.GetBookingByIdAsync(id, cancellationToken);
+        else if (Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+        {
+            // Не админ видит только свои брони
+            booking = await _bookingService.GetBookingByIdAsync(id, currentUserId, cancellationToken);
+        }
+        else
+            return Forbid();
+
         return Ok(new ApiResult<Booking>
         {
-            Data = await _bookingService.GetBookingByIdAsync(id, cancellationToken),
+            Data = booking,
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем бронирование по индексу из коллекции"
         });
     }
 
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpGet("~/api/users/{userId:guid}/bookings")]
     public async Task<ActionResult<ApiBaseResult>> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
@@ -45,8 +58,9 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
     /// <param name="eventId">Идентификатор мероприятия</param>
     /// <returns></returns>
     /// <response code="409">Нет доступных мест на мероприятие</response>
-    [HttpPost("~/api/events/{eventId:guid}/book")]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [HttpPost("~/api/events/{eventId:guid}/book")]
     public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
@@ -78,6 +92,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
         });
     }
 
+    [Authorize]
     [HttpDelete("~/api/events/{eventId:guid}/book")]
     public async Task<ActionResult<ApiResult>> CancelBooking(Guid eventId, CancellationToken cancellationToken)
     {
