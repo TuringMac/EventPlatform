@@ -16,7 +16,12 @@ internal class UserService(IUserRepository userRepository, ILogger<UserService> 
     public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
     {
         var hashedPassword = password.ToHashString();
-        var user = await userRepository.GetUserByLoginHashedPassword(login, hashedPassword, cancellationToken);
+        var user = await userRepository.GetUserByLogin(login, cancellationToken);        
+        if (user == null || user.PasswordHash != hashedPassword)
+        {
+            throw new UnauthorizedAccessException("Неверный логин или пароль.");
+        }
+
         logger.LogInformation("Пользователь аутентифицирован: {UserId}, {Login}", user.Id, user.Login);
 
         // Создание списка утверждений
@@ -45,7 +50,7 @@ internal class UserService(IUserRepository userRepository, ILogger<UserService> 
             issuer: "EventPlatform.AuthServer",
             audience: "EventPlatform.Api",
             claims: claims,
-            expires: DateTime.Now.AddMinutes(15),
+            expires: DateTime.Now.AddMinutes(int.Parse(configuration["Jwt:Lifetime"] ?? "15")),
             signingCredentials: creds
         );
 

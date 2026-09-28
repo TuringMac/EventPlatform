@@ -5,5 +5,5 @@ namespace EventPlatform.Application.Interfaces;
 public interface IUserRepository : IRepositoryCrud<User>
 {
     Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken);
-    Task<User> GetUserByLoginHashedPassword(string login, string hashedPassword, CancellationToken cancellationToken);
+    Task<User?> GetUserByLogin(string login, CancellationToken cancellationToken);
 }

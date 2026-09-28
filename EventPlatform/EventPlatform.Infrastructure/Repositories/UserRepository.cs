@@ -16,25 +16,14 @@ internal class UserRepository(AppDbContext _context) : IUserRepository
         return await _context.Users.ToListAsync(cancellationToken);
     }
 
-    public async Task<User> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var user = await _context.Users.FindAsync([id], cancellationToken);
-        if (user == null)
-        {
-            throw new KeyNotFoundException($"User with ID {id} not found.");
-        }
-        return user;
+        return await _context.Users.FindAsync([id], cancellationToken);
     }
 
-    public async Task<User> GetUserByLoginHashedPassword(string login, string hashedPassword, CancellationToken cancellationToken)
+    public async Task<User?> GetUserByLogin(string login, CancellationToken cancellationToken)
     {
-        // Здесь должна быть логика получения пользователя из базы данных
-        var user= await _context.Users.SingleOrDefaultAsync(u => u.Login == login && u.PasswordHash == hashedPassword, cancellationToken);
-        if(user == null)
-        {
-            throw new KeyNotFoundException($"Пользователь с логином {login} и предоставленным хешированным паролем не найден.");
-        }
-        return user;
+        return await _context.Users.SingleOrDefaultAsync(u => u.Login == login, cancellationToken);
     }
 
     public async Task AddAsync(User entity, CancellationToken cancellationToken)
