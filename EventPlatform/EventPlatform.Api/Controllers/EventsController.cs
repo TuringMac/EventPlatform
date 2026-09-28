@@ -18,7 +18,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
     {
         return new ApiResult<PaginatedResult<Event>>
         {
-            Data = await _eventService.GetAllAsync(title, from, to, page, pageSize),
+            Data = await _eventService.GetAllAsync(cancellationToken, title, from, to, page, pageSize),
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем все мероприятия из коллекции"
@@ -37,12 +37,12 @@ public class EventsController(IEventService _eventService, IBookingService _book
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     //[ResponseCache(Duration = 60)]
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ApiBaseResult>> GetById(Guid id)
+    public async Task<ActionResult<ApiBaseResult>> GetById(Guid id, CancellationToken cancellationToken)
     {
         // В случае успеха возвращаем типизированный ответ с данными
         return new ApiResult<Event>
         {
-            Data = await _eventService.GetByIdAsync(id),
+            Data = await _eventService.GetByIdAsync(id, cancellationToken),
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем мероприятие по индексу из коллекции"
@@ -58,7 +58,8 @@ public class EventsController(IEventService _eventService, IBookingService _book
             value.Description ?? string.Empty,
             value.StartAt,
             value.EndAt,
-            value.TotalSeats
+            value.TotalSeats,
+            cancellationToken
         );
         _logger.LogDebug("DTO сконвертирован");
         return CreatedAtAction(nameof(GetById), new { id = evt.Id }, new ApiResult
@@ -114,15 +115,15 @@ public class EventsController(IEventService _eventService, IBookingService _book
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<ApiResult>> Put(Guid id, [FromBody] EventDto value)
+    public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
     {
-        var evt = await _eventService.GetByIdAsync(id);
+        var evt = await _eventService.GetByIdAsync(id, cancellationToken);
         evt.Title = value.Title;
         evt.Description = value.Description;
         evt.StartAt = value.StartAt;
         evt.EndAt = value.EndAt;
 
-        await _eventService.UpdateAsync(id, evt);
+        await _eventService.UpdateAsync(id, evt, cancellationToken);
         _logger.LogDebug("Событие {Id} обновлено", evt.Id);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
@@ -133,7 +134,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<ActionResult<ApiResult>> Delete(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ApiResult>> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _eventService.DeleteAsync(id, cancellationToken);
         _logger.LogDebug("Событие {Id} удалено", id);

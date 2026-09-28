@@ -13,7 +13,8 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         string description,
         DateTime startAt,
         DateTime endAt,
-        int totalSeats)
+        int totalSeats,
+        CancellationToken cancellationToken)
     {
         var evt = new Event(
             id,
@@ -25,23 +26,23 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         {
             Description = description,
         };
-        await _eventRepository.AddAsync(evt);
+        await _eventRepository.AddAsync(evt, cancellationToken);
         return evt;
     }
 
-    public async Task AddAsync(Event obj, CancellationToken cancellationToken = default)
+    public async Task AddAsync(Event obj, CancellationToken cancellationToken)
     {
         ValidateEvent(obj);
         await _eventRepository.AddAsync(obj, cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
     {
         if (await _eventRepository.DeleteAsync(eventId, cancellationToken) == 0)
             throw new KeyNotFoundException();
     }
 
-    public async Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
+    public async Task<PaginatedResult<Event>> GetAllAsync(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
     {
         int safePage = page ?? 1;
         int safePageSize = pageSize ?? 10;
@@ -57,7 +58,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         return new PaginatedResult<Event> { Data = events, CurrentPage = currentPage, PageItems = pageItems, TotalItems = totalAmount };
     }
 
-    public async Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         ValidateGuid(id);
         var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);
@@ -66,7 +67,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         return evt;
     }
 
-    public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken)
     {
         ValidateEvent(id, obj);
         var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);

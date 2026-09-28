@@ -51,7 +51,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         }
     }
 
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
@@ -61,7 +61,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         return booking;
     }
 
-    public async Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken = default, int batch = 50)
+    public async Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await _bookingRepository.GetPendingIdsAsync(batch, cancellationToken);
     }

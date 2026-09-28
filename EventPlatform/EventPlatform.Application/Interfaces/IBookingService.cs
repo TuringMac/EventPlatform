@@ -4,8 +4,10 @@ namespace EventPlatform.Application.Interfaces;
 
 public interface IBookingService
 {
-    Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default);
-    Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken = default, int batch = 50);
-    Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken = default);
+    Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken);
+    Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken);
+    Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken);
+    Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken, int batch = 50);
+    Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken);
 }

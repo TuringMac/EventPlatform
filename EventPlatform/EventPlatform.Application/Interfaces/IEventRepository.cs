@@ -13,6 +13,6 @@ public interface IEventRepository
         DateTime? to,
         int page,
         int pageSize,
-        CancellationToken cancellationToken = default);
-    Task UpdateAsync(Event evt, CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken);
+    Task UpdateAsync(Event evt, CancellationToken cancellationToken);
 }
