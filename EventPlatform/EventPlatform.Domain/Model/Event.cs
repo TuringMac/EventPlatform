@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace EventPlatform.Domain.Model;
 
-public class Event
+public class Event : IEntity
 {
     public Guid Id { get; init; }
     [Required(AllowEmptyStrings = false, ErrorMessage = "Название обязательно для заполнения")]
