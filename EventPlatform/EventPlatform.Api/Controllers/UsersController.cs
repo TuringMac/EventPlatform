@@ -79,4 +79,23 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
             Message = "Пользователь удален из базы"
         });
     }
+
+    [AllowAnonymous]
+    [HttpPost("~/api/auth/register")]
+    public async Task<IActionResult> Register([FromBody] LoginPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await userService.CreateAsync(new UserRequest
+        {
+            Login = request.Login,
+            Password = request.Password,
+            Role = UserRoleEnum.User
+        }, cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = user.Id }, new ApiBaseResult
+        {
+            Success = true,
+            StatusCode = HttpStatusCode.Created,
+            Message = "Пользователь зарегистрирован"
+        });
+    }
 }
