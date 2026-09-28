@@ -15,7 +15,20 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
 
     public async Task<Booking> CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken)
     {
+        throw new NotImplementedException();
+    }
+
     public async Task<Guid> GetBookingIdByEventAndUserAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
+    {
+        var booking = await _context.Bookings
+            .Where(b => b.EventId == eventId && b.UserId == userId)
+            .Select(b => b.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (booking == default)
+            throw new KeyNotFoundException($"Бронь пользователя {userId} на мероприятие {eventId} не найдена.");
+        return booking;
+    }
+
     public async Task<Booking?> GetByIdAsync(Guid bookingId, CancellationToken cancellationToken)
     {
         return await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
@@ -24,6 +37,13 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
     public async Task<IReadOnlyList<Booking>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.UserId == userId)
+            .OrderByDescending(b => b.CreatedAt)
+            .ThenBy(b => b.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Guid>> GetPendingIdsAsync(int batch, CancellationToken cancellationToken)
     {
         return await _context.Bookings

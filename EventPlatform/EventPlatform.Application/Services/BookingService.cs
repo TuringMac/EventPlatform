@@ -11,10 +11,12 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
     private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
+        if (userId == Guid.Empty)
+            throw new ArgumentException(nameof(userId));
 
         await _bookingSemaphore.WaitAsync(cancellationToken);
         try
@@ -32,7 +34,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
 
             try
             {
-                var booking = new Booking(eventId);
+                var booking = new Booking(eventId, userId);
                 await _bookingRepository.AddAsync(booking, cancellationToken);
                 _logger.LogInformation("Бронь {bookingId} добавлена в БД", booking.Id);
                 _logger.LogInformation("Событие {eventId} обновлено в БД", evt.Id);
@@ -53,6 +55,18 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
 
     public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
+        if (eventId == Guid.Empty)
+            throw new ArgumentException(nameof(eventId));
+        if (userId == Guid.Empty)
+            throw new ArgumentException(nameof(userId));
+
+        var bookingId = await _bookingRepository.GetBookingIdByEventAndUserAsync(eventId, userId, cancellationToken);
+        var booking = await _bookingRepository.CancelBookingAsync(bookingId, cancellationToken);
+        return booking;
+    }
+
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
         var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken);
@@ -62,6 +76,14 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
     }
 
     public async Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("Идентификатор пользователя не может быть пустым", nameof(userId));
+
+        return await _bookingRepository.GetByUserIdAsync(userId, cancellationToken);
+    }
+
+    public async Task<IEnumerable<Guid>> GetPendingBookingsAsync(CancellationToken cancellationToken, int batch = 50)
     {
         return await _bookingRepository.GetPendingIdsAsync(batch, cancellationToken);
     }

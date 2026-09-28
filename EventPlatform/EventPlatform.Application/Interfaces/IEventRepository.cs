@@ -2,11 +2,8 @@
 
 namespace EventPlatform.Application.Interfaces;
 
-public interface IEventRepository
+public interface IEventRepository : IRepositoryCrud<Event>
 {
-    Task AddAsync(Event evt, CancellationToken cancellationToken = default);
-    Task<int> DeleteAsync(Guid eventId, CancellationToken cancellationToken = default);
-    Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<(IEnumerable<Event> events, int currentPage, int pageItems, int totalAmount)> GetPagedAsync(
         string? title,
         DateTime? from,
@@ -14,5 +11,4 @@ public interface IEventRepository
         int page,
         int pageSize,
         CancellationToken cancellationToken);
-    Task UpdateAsync(Event evt, CancellationToken cancellationToken);
 }
