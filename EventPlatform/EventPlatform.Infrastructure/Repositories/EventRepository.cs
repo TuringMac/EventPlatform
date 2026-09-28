@@ -15,7 +15,13 @@ public class EventRepository(AppDbContext _context) : IEventRepository
 
     public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
     {
-        return await _context.Events.Where(e => e.Id == eventId).ExecuteDeleteAsync(cancellationToken);
+        var evt = await _context.Events.FindAsync([eventId], cancellationToken);
+        if (evt == null)
+        {
+            throw new KeyNotFoundException($"Мероприятие с ID {eventId} не найдено.");
+        }
+        _context.Events.Remove(evt);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

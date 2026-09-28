@@ -38,8 +38,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
 
     public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
     {
-        if (await _eventRepository.DeleteAsync(eventId, cancellationToken) == 0)
-            throw new KeyNotFoundException();
+        await _eventRepository.DeleteAsync(eventId, cancellationToken);
     }
 
     public async Task<PaginatedResult<Event>> GetAllAsync(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10)
@@ -52,7 +51,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         if (safePageSize < 1)
             throw new ArgumentException("Размер страницы должен быть положительным", nameof(pageSize));
 
-        var (events, currentPage, pageItems, totalAmount) = await _eventRepository.GetPagedAsync(title, from, to, safePage, safePageSize);
+        var (events, currentPage, pageItems, totalAmount) = await _eventRepository.GetPagedAsync(title, from, to, safePage, safePageSize, cancellationToken);
         _logger.LogInformation("Query filtered: {totalAmount}; Items on page {pageItems}", totalAmount, pageItems);
 
         return new PaginatedResult<Event> { Data = events, CurrentPage = currentPage, PageItems = pageItems, TotalItems = totalAmount };
@@ -61,23 +60,21 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
     public async Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         ValidateGuid(id);
-        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);
-        if (evt is null)
-            throw new KeyNotFoundException($"Event {id} not found");
+        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
         return evt;
     }
 
     public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken)
     {
         ValidateEvent(id, obj);
-        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken);
-        if (evt is null)
-            throw new KeyNotFoundException($"Event {id} not found");
+        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
         evt.Title = obj.Title;
         evt.Description = obj.Description;
         evt.StartAt = obj.StartAt;
         evt.EndAt = obj.EndAt;
-        await _eventRepository.UpdateAsync(evt, cancellationToken);
+        await _eventRepository.UpdateAsync(id, evt, cancellationToken);
     }
 
     void ValidateEvent(Event obj)

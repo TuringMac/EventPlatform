@@ -12,7 +12,7 @@ namespace EventPlatform.Api.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
-public class EventsController(IEventService _eventService, IBookingService _bookingService, ILogger<EventsController> _logger) : ControllerBase
+public class EventsController(IEventService _eventService, ILogger<EventsController> _logger) : ControllerBase
 {
     [AllowAnonymous]
     [HttpGet]
@@ -54,7 +54,7 @@ public class EventsController(IEventService _eventService, IBookingService _book
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<ActionResult<ApiResult>> Post([FromBody] EventDto value, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ApiResult>> Add([FromBody] EventDto value, CancellationToken cancellationToken)
     {
         var evt = await _eventService.CreateEventAsync(
             value.Id,
@@ -75,37 +75,14 @@ public class EventsController(IEventService _eventService, IBookingService _book
     }
 
     /// <summary>
-    /// Забронировать места на мероприятие
-    /// </summary>
-    /// <param name="eventId">Идентификатор мероприятия</param>
-    /// <returns></returns>
-    /// <response code="409">Нет доступных мест на мероприятие</response>
-    [HttpPost("{eventId:guid}/book")]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [Authorize(Roles = "Admin")]
-    {
-        var book = await _bookingService.CreateBookingAsync(eventId, cancellationToken);
-        return AcceptedAtAction(
-            nameof(BookingsController.GetById),
-            "Bookings",
-            new { id = book.Id },
-            new ApiResult<Booking>
-            {
-                Data = book,
-                Success = true,
-                StatusCode = HttpStatusCode.Accepted,
-                Message = "Бронирование взято в обработку"
-            });
-    }
-
-    /// <summary>
     /// Список броней мероприятия
     /// </summary>
     /// <param name="eventId">Идентификатор мероприятия</param>
     /// <returns></returns>
     /// <response code="409">Нет доступных мест на мероприятие</response>
-    [HttpGet("{eventId:guid}/bookings")]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [Authorize(Roles = "Admin")]
+    [HttpGet("{eventId:guid}/bookings")]
     public async Task<ActionResult<ApiResult>> GetEventBookings(Guid eventId, CancellationToken cancellationToken)
     {
         var evt = await _eventService.GetByIdAsync(eventId, cancellationToken);
