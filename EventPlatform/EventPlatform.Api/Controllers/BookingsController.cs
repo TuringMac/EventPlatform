@@ -40,7 +40,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
     [HttpGet("~/api/users/{userId:guid}/bookings")]
     public async Task<ActionResult<ApiBaseResult>> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId) || currentUserId != userId)
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
             return Forbid();
 
         return Ok(new ApiResult<IEnumerable<Booking>>
@@ -59,7 +59,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
     /// <returns></returns>
     /// <response code="409">Нет доступных мест на мероприятие</response>
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [Authorize]
     [HttpPost("~/api/events/{eventId:guid}/book")]
     public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
     {
