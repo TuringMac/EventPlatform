@@ -27,9 +27,9 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
                 throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new EventEndedException("Событие уже завершилось");
-            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= int.Parse(configuration["Booking:PerUserLimit"]
-                    ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")))
-                throw new BookingLimitReachedException("Достигнут лимит Броней для Пользователя: " + userId);
+            int limit = int.Parse(configuration["Booking:PerUserLimit"] ?? throw new InvalidOperationException("Booking:PerUserLimit не задан"));
+            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= limit)
+                throw new BookingLimitReachedException($"Достигнут лимит {limit} Броней для Пользователя: {userId}");
 
             if (!evt.TryReserveSeats())
             {
