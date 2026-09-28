@@ -31,6 +31,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             NoAvailableSeatsException => StatusCodes.Status409Conflict,
+            EventEndedException => StatusCodes.Status400BadRequest,
+            BookingLimitReachedException => StatusCodes.Status409Conflict,
+
             _ => StatusCodes.Status500InternalServerError
         };
 
