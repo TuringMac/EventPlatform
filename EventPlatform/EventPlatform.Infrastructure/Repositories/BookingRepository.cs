@@ -15,12 +15,17 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
 
     public async Task<Booking> CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var booking = await _context.Bookings.FindAsync([bookingId], cancellationToken)
+            ?? throw new KeyNotFoundException($"Бронь {bookingId} не найдена.");
+
+        booking.Cancel();
+        await _context.SaveChangesAsync(cancellationToken);
+        return booking;
     }
 
     public async Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken)
     {
-        return await _context.Bookings.CountAsync(b => b.UserId == userId, cancellationToken);
+        return await _context.Bookings.CountAsync(b => b.UserId == userId && b.Status != BookingStatusEnum.Cancelled, cancellationToken);
     }
 
     public async Task<Guid> GetBookingIdByEventAndUserAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)

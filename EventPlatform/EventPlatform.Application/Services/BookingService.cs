@@ -66,8 +66,16 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
             throw new ArgumentException(nameof(userId));
 
         var bookingId = await _bookingRepository.GetBookingIdByEventAndUserAsync(eventId, userId, cancellationToken);
-        var booking = await _bookingRepository.CancelBookingAsync(bookingId, cancellationToken);
+        var booking = await CancelBookingByIdAsync(bookingId, cancellationToken);
         return booking;
+    }
+
+    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        if (bookingId == Guid.Empty)
+            throw new ArgumentException(nameof(bookingId));
+
+        return await _bookingRepository.CancelBookingAsync(bookingId, cancellationToken);
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)

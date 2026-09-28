@@ -52,7 +52,7 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         };
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPost]
     public async Task<ActionResult<ApiResult>> Add([FromBody] EventDto value, CancellationToken cancellationToken)
     {
@@ -81,7 +81,7 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
     /// <returns></returns>
     /// <response code="409">Нет доступных мест на мероприятие</response>
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpGet("{eventId:guid}/bookings")]
     public async Task<ActionResult<ApiResult>> GetEventBookings(Guid eventId, CancellationToken cancellationToken)
     {
@@ -95,7 +95,7 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
     {
@@ -115,7 +115,7 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         });
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Delete(Guid id, CancellationToken cancellationToken)
     {

@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Api.Mappers;
 using EventPlatform.Application.DTO;
 using EventPlatform.Application.Interfaces;
+using EventPlatform.Domain.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -8,7 +9,7 @@ using System.Security.Claims;
 
 namespace EventPlatform.Api.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = nameof(UserRoleEnum.Admin))]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController(IUserService userService, ILogger<UsersController> logger) : ControllerBase

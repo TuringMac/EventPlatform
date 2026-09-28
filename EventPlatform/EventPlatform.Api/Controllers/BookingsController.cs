@@ -49,7 +49,9 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ApiResult>> CreateBooking(Guid eventId, CancellationToken cancellationToken)
     {
-        var userId = new Guid(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+            return Forbid();
+        var userId = currentUserId;
         var book = await _bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
         return AcceptedAtAction(
             nameof(GetById),
@@ -63,19 +65,36 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             });
     }
 
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [HttpDelete("{bookingId:guid}")]
+    public async Task<ActionResult<ApiResult>> CancelBookingById(Guid bookingId, CancellationToken cancellationToken)
+    {
+        await _bookingService.CancelBookingByIdAsync(bookingId, cancellationToken);
+        return AcceptedAtAction(
+            nameof(GetById),
+            new { id = bookingId },
+            new ApiBaseResult
+            {
+                Success = true,
+                StatusCode = HttpStatusCode.NoContent,
+                Message = "Бронирование отменено"
+            });
+    }
+
     [HttpDelete("~/api/events/{eventId:guid}/book")]
     public async Task<ActionResult<ApiResult>> CancelBooking(Guid eventId, CancellationToken cancellationToken)
     {
-        var userId = new Guid(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+            return Forbid();
+        var userId = currentUserId;
         var book = await _bookingService.CancelBookingAsync(eventId, userId, cancellationToken);
         return AcceptedAtAction(
             nameof(GetById),
             new { id = book.Id },
-            new ApiResult<Booking>
+            new ApiBaseResult
             {
-                Data = book,
                 Success = true,
-                StatusCode = HttpStatusCode.Accepted,
+                StatusCode = HttpStatusCode.NoContent,
                 Message = "Бронирование отменено"
             });
     }
