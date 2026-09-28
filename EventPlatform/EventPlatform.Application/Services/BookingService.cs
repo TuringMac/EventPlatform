@@ -6,13 +6,13 @@ using Microsoft.Extensions.Logging;
 
 namespace EventPlatform.Application.Services;
 
-public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, IConfiguration configuration, ILogger<BookingService> _logger) : IBookingService
+public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, ILogger<BookingService> _logger) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
     private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, int limit, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
@@ -27,7 +27,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
                 throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new EventEndedException("Событие уже завершилось");
-            int limit = int.Parse(configuration["Booking:PerUserLimit"] ?? throw new InvalidOperationException("Booking:PerUserLimit не задан"));
+            
             if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= limit)
                 throw new BookingLimitReachedException($"Достигнут лимит {limit} Броней для Пользователя: {userId}");
 

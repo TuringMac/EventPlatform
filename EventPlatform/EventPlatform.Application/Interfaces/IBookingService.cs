@@ -4,7 +4,7 @@ namespace EventPlatform.Application.Interfaces;
 
 public interface IBookingService
 {
-    Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken);
+    Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, int limit, CancellationToken cancellationToken);
     Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken);
     Task<Booking> CancelBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken);
     Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken);

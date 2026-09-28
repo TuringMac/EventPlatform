@@ -9,7 +9,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BookingsController(IBookingService _bookingService) : ControllerBase
+public class BookingsController(IBookingService _bookingService, IConfiguration configuration) : ControllerBase
 {
     [Authorize]
     [HttpGet("{id:guid}")]
@@ -66,7 +66,11 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
             return Forbid();
         var userId = currentUserId;
-        var book = await _bookingService.CreateBookingAsync(eventId, userId, cancellationToken);
+        var book = await _bookingService.CreateBookingAsync(
+            eventId, 
+            userId, 
+            limit: int.Parse(configuration["Booking:PerUserLimit"] ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")),
+            cancellationToken);
         return AcceptedAtAction(
             nameof(GetById),
             new { id = book.Id },
