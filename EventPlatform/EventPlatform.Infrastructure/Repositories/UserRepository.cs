@@ -9,7 +9,7 @@ using System.Text;
 
 namespace EventPlatform.Infrastructure.Repositories;
 
-internal class UserRepository(AppDbContext _context) : IUserRepository
+public class UserRepository(AppDbContext _context) : IUserRepository
 {
     public async Task<IEnumerable<User>> GetAllAsync(CancellationToken cancellationToken)
     {

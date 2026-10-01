@@ -20,7 +20,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var repository = new EventRepository(context);
 
         // Act
-        await repository.AddAsync(evt);
+        await repository.AddAsync(evt, TestContext.Current.CancellationToken);
 
         // Assert — читаем из реальной БД через отдельный контекст
         await using var verifyContext = fixture.CreateContext();
@@ -42,7 +42,9 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.Add(evt);
-            arrangeContext.Bookings.Add(new Booking(evt.Id));
+            var user = new User("owner", "hash", UserRoleEnum.User);
+            arrangeContext.Users.Add(user);
+            arrangeContext.Bookings.Add(new Booking(evt.Id, user.Id));
             await arrangeContext.SaveChangesAsync();
         }
 
@@ -50,7 +52,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var repository = new EventRepository(context);
 
         // Act
-        var loaded = await repository.GetByIdAsync(evt.Id);
+        var loaded = await repository.GetByIdAsync(evt.Id, TestContext.Current.CancellationToken);
 
         // Assert
         loaded.Should().NotBeNull();
@@ -67,7 +69,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var repository = new EventRepository(context);
 
         // Act
-        var loaded = await repository.GetByIdAsync(Guid.NewGuid());
+        var loaded = await repository.GetByIdAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
         loaded.Should().BeNull();
@@ -87,14 +89,14 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         await using var context = fixture.CreateContext();
         var repository = new EventRepository(context);
-        var tracked = await repository.GetByIdAsync(evt.Id);
+        var tracked = await repository.GetByIdAsync(evt.Id, TestContext.Current.CancellationToken);
         tracked!.Title = "Updated title";
         tracked.Description = "Updated description";
         var newEnd = tracked.EndAt.AddHours(3);
         tracked.EndAt = newEnd;
 
         // Act
-        await repository.UpdateAsync(tracked);
+        await repository.UpdateAsync(evt.Id, tracked, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verify = fixture.CreateContext();
@@ -118,11 +120,11 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         await using var context = fixture.CreateContext();
         var repository = new EventRepository(context);
-        var tracked = await repository.GetByIdAsync(evt.Id);
+        var tracked = await repository.GetByIdAsync(evt.Id, TestContext.Current.CancellationToken);
         tracked!.TryReserveSeats().Should().BeTrue();
 
         // Act
-        await repository.UpdateAsync(tracked);
+        await repository.UpdateAsync(evt.Id, tracked, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verify = fixture.CreateContext();
@@ -147,16 +149,15 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var repository = new EventRepository(context);
 
         // Act
-        var deleted = await repository.DeleteAsync(evt.Id);
+        await repository.DeleteAsync(evt.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        deleted.Should().Be(1);
         await using var verify = fixture.CreateContext();
         (await verify.Events.AnyAsync(e => e.Id == evt.Id)).Should().BeFalse();
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenMissing_ReturnsZero()
+    public async Task DeleteAsync_WhenMissing_ThrowsKeyNotFoundException()
     {
         // Arrange
         await fixture.ResetDatabaseAsync();
@@ -164,10 +165,10 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var repository = new EventRepository(context);
 
         // Act
-        var deleted = await repository.DeleteAsync(Guid.NewGuid());
+        var act = () => repository.DeleteAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
-        deleted.Should().Be(0);
+        await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
@@ -189,7 +190,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Act
         var (events, currentPage, pageItems, totalAmount) =
-            await repository.GetPagedAsync(null, null, null, page: 1, pageSize: 2);
+            await repository.GetPagedAsync(null, null, null, page: 1, pageSize: 2, TestContext.Current.CancellationToken);
 
         // Assert
         currentPage.Should().Be(1);
@@ -216,7 +217,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Act
         var (events, _, pageItems, totalAmount) =
-            await repository.GetPagedAsync("concert", null, null, page: 1, pageSize: 10);
+            await repository.GetPagedAsync("concert", null, null, page: 1, pageSize: 10, TestContext.Current.CancellationToken);
 
         // Assert
         totalAmount.Should().Be(1);
@@ -249,7 +250,8 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
             from: now.AddMinutes(-15),
             to: now.AddMinutes(15),
             page: 1,
-            pageSize: 10);
+            pageSize: 10,
+            cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         totalAmount.Should().Be(1);

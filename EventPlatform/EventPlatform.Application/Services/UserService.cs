@@ -1,19 +1,13 @@
 ﻿using EventPlatform.Application.DTO;
 using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace EventPlatform.Application.Services;
 
-internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, ILogger<UserService> logger, IConfiguration configuration) : IUserService
+internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, ILogger<UserService> logger) : IUserService
 {
-    public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
+    public async Task<string> GenerateJwtAsync(string login, string password, string jwtKey, int lifetime, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetUserByLogin(login, cancellationToken);
         if (user == null || user.PasswordHash != password.ToHashString())
@@ -22,8 +16,8 @@ internal class UserService(IUserRepository userRepository, ITokenGenerator token
 
         var token = await tokenGenerator.GenerateToken(
             user,
-            configuration["Jwt:Key"] ?? throw new InvalidOperationException("Ключ JWT не настроен."),
-            int.Parse(configuration["Jwt:Lifetime"] ?? "15"), cancellationToken);
+            jwtKey,
+            lifetime, cancellationToken);
         logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, login);
 
         return token;

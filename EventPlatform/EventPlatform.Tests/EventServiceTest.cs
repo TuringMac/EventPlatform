@@ -43,13 +43,15 @@ public class EventServiceTest
     public async Task CreateEvent_ShouldCallAddOnce()
     {
         // Arrange
+        var initialCount = await _db.Events.CountAsync(TestContext.Current.CancellationToken);
+
         // Act
         var evt = await CreateTestEventAsync();
-        var id = evt.Id;
 
         // Assert
-        var savedEvt = await _db.Events.SingleAsync(e => e.Id == id, TestContext.Current.CancellationToken);
+        var savedEvt = await _db.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
         savedEvt.Should().Be(evt);
+        (await _db.Events.CountAsync(TestContext.Current.CancellationToken)).Should().Be(initialCount + 1);
     }
 
     [Trait("Category", "Get")]
@@ -109,12 +111,10 @@ public class EventServiceTest
         var id = evt.Id;
 
         // Act
-        //await _eventService.DeleteAsync(evt.Id, TestContext.Current.CancellationToken); // Not appliable with InMemory provider
-        _db.Events.Remove(evt);
-        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _eventService.DeleteAsync(evt.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        _db.Events.Any(e => e.Id == id).Should().BeFalse();
+        (await _db.Events.AnyAsync(e => e.Id == id, TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Trait("Category", "Get")]
@@ -146,8 +146,8 @@ public class EventServiceTest
         var midLateTo = midEvt.EndAt.AddMinutes(-15);
 
         // Act
-        var early = (await _eventService.GetAllAsync(null, earlySingleFrom, earlySingleTo)).Data;
-        var late = (await _eventService.GetAllAsync(null, midLateFrom, midLateTo)).Data;
+        var early = (await _eventService.GetAllAsync(TestContext.Current.CancellationToken, null, earlySingleFrom, earlySingleTo)).Data;
+        var late = (await _eventService.GetAllAsync(TestContext.Current.CancellationToken, null, midLateFrom, midLateTo)).Data;
 
         // Assert
         early.Single().Should().BeEquivalentTo(earlyEvt);
@@ -164,7 +164,7 @@ public class EventServiceTest
         var evt = await CreateTestEventAsync();
 
         // Act
-        var pagination = await _eventService.GetAllAsync(null, null, null, pageNum, pageSize);
+        var pagination = await _eventService.GetAllAsync(TestContext.Current.CancellationToken, null, null, null, pageNum, pageSize);
 
         // Assert
         pagination.Data.Count().Should().BeGreaterThan(0).And.BeLessThanOrEqualTo(pageSize);
@@ -196,7 +196,7 @@ public class EventServiceTest
         var from = DateTime.MinValue;
 
         // Act
-        var pagination = await _eventService.GetAllAsync(title, from, null);
+        var pagination = await _eventService.GetAllAsync(TestContext.Current.CancellationToken, title, from, null);
 
         // Assert
         pagination.Data.Should().BeEmpty();
@@ -227,7 +227,7 @@ public class EventServiceTest
         var gid = Guid.NewGuid();
 
         // Act
-        var act = async () => await _eventService.GetByIdAsync(gid);
+        var act = async () => await _eventService.GetByIdAsync(gid, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -242,7 +242,7 @@ public class EventServiceTest
         var evt = await CreateTestEventAsync();
 
         // Act
-        var act = async () => await _eventService.UpdateAsync(gid, evt);
+        var act = async () => await _eventService.UpdateAsync(gid, evt, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -254,12 +254,11 @@ public class EventServiceTest
     public async Task CreateEventWithInvalidParams_ThrowsArgumentException()
     {
         // Arrange
-        var gid = Guid.NewGuid();
         var evt = await CreateTestEventAsync();
         evt.EndAt = evt.StartAt.AddDays(-1);
 
         // Act
-        var act = async () => await _eventService.AddAsync(evt);
+        var act = async () => await _eventService.AddAsync(evt, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -276,7 +275,7 @@ public class EventServiceTest
         evt.EndAt = evt.StartAt.AddDays(-1);
 
         // Act
-        var act = async () => await _eventService.UpdateAsync(gid, evt);
+        var act = async () => await _eventService.UpdateAsync(gid, evt, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -314,7 +313,7 @@ public class EventServiceTest
         var id = Guid.Empty;
 
         // Act
-        var act = async () => await _eventService.GetByIdAsync(id);
+        var act = async () => await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -330,8 +329,8 @@ public class EventServiceTest
         int pageSize = -10;
 
         // Act
-        var paginationNegativePageNum = async () => await _eventService.GetAllAsync(null, null, null, pageNum);
-        var paginationNegativePageSize = async () => await _eventService.GetAllAsync(null, null, null, 1, pageSize);
+        var paginationNegativePageNum = async () => await _eventService.GetAllAsync(TestContext.Current.CancellationToken, null, null, null, pageNum);
+        var paginationNegativePageSize = async () => await _eventService.GetAllAsync(TestContext.Current.CancellationToken, null, null, null, 1, pageSize);
 
         // Assert
         await paginationNegativePageNum.Should()
@@ -352,7 +351,8 @@ public class EventServiceTest
                 "Test event Description",
                 DateTime.UtcNow.AddHours(1),
                 DateTime.UtcNow.AddHours(3),
-                totalSeats > 0 ? totalSeats : new Random().Next(3, 8)
+                totalSeats > 0 ? totalSeats : new Random().Next(3, 8),
+                TestContext.Current.CancellationToken
             );
     }
 }

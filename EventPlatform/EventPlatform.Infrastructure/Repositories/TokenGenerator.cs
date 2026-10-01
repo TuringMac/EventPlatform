@@ -10,7 +10,7 @@ using System.Text;
 
 namespace EventPlatform.Infrastructure.Repositories;
 
-internal class TokenGenerator(IUserRepository userRepository, ILogger<TokenGenerator> logger) : ITokenGenerator
+public class TokenGenerator : ITokenGenerator
 {
     public async Task<string> GenerateToken(User user, string jwtKey, int lifetime, CancellationToken cancellationToken)
     {
