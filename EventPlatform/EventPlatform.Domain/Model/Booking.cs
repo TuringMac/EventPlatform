@@ -1,4 +1,5 @@
-﻿using EventPlatform.Domain.Interfaces;
+﻿using EventPlatform.Domain.Exceptions;
+using EventPlatform.Domain.Interfaces;
 using System.Text.Json.Serialization;
 
 namespace EventPlatform.Domain.Model;
@@ -58,7 +59,7 @@ public class Booking : IEntity
     public void Cancel()
     {
         if (Status == BookingStatusEnum.Cancelled || Status == BookingStatusEnum.Rejected)
-            throw new InvalidOperationException($"Бронь уже отменена");
+            throw new BookingAlreadyCancelledException($"Бронь уже отменена");
 
         Status = BookingStatusEnum.Cancelled;
         ProcessedAt = DateTime.UtcNow;

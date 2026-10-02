@@ -379,7 +379,7 @@ public class BookingServiceTest
         var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BookingAlreadyCancelledException>();
         seatsBeforeCancellation.Should().Be(totalSeats - 1);
         seatsAfterCancellation.Should().Be(totalSeats);
         evt.AvailableSeats.Should().Be(seatsAfterCancellation);
@@ -401,7 +401,7 @@ public class BookingServiceTest
         var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BookingAlreadyCancelledException>();
         booking.Status.Should().Be(BookingStatusEnum.Rejected);
         evt.AvailableSeats.Should().Be(seatsBeforeCancellation);
         evt.AvailableSeats.Should().Be(totalSeats);
