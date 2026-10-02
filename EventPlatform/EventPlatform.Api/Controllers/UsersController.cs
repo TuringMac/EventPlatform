@@ -91,6 +91,11 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
             Role = Enum.Parse<UserRoleEnum>(request.Role ?? UserRoleEnum.User.ToString())
         }, cancellationToken);
 
-        return NoContent();
+        return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
+        {
+            Success = true,
+            StatusCode = HttpStatusCode.NoContent,
+            Message = "Пользователь зарегистрирован"
+        });
     }
 }
