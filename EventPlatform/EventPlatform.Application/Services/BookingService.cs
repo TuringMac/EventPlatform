@@ -27,7 +27,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
                 throw new KeyNotFoundException($"Event {eventId} not found");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new EventEndedException("Событие уже завершилось");
-            
+
             if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= limit)
                 throw new BookingLimitReachedException($"Достигнут лимит {limit} Броней для Пользователя: {userId}");
 
@@ -66,6 +66,9 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
             throw new ArgumentException(nameof(userId));
 
         var bookingId = await _bookingRepository.GetBookingIdByEventAndUserAsync(eventId, userId, cancellationToken);
+        if (bookingId == Guid.Empty)
+            throw new KeyNotFoundException($"Бронирование для события {eventId} и пользователя {userId} не найдено");
+
         var booking = await CancelBookingByIdAsync(bookingId, cancellationToken);
         return booking;
     }
@@ -75,7 +78,25 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         if (bookingId == Guid.Empty)
             throw new ArgumentException(nameof(bookingId));
 
-        return await _bookingRepository.CancelBookingAsync(bookingId, cancellationToken);
+        await _bookingSemaphore.WaitAsync(cancellationToken);
+        try
+        {
+            var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Бронирование {bookingId} не найдено");
+            var evt = await _eventRepository.GetByIdAsync(booking.EventId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Событие {booking.EventId} не найдено");
+            if (evt.EndAt < DateTime.UtcNow)
+                throw new EventEndedException("Событие уже завершилось");
+
+            booking.Cancel();
+            evt.ReleaseSeats();
+            await _bookingRepository.UpdateAsync(booking, cancellationToken);
+            return booking;
+        }
+        finally
+        {
+            _bookingSemaphore.Release();
+        }
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)

@@ -332,6 +332,23 @@ public class BookingServiceTest
     }
 
     [Fact]
+    public async Task CancelBookingById_WhenConfirmed_ChangesStatus()
+    {
+        // Arrange
+        var evt = await CreateTestEventAsync();
+        var booking = await CreateBookingAsync(evt.Id);
+        booking.Confirm();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
+        cancelled.ProcessedAt.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task CancelBookingById_WhenPending_ChangesStatus()
     {
         // Arrange
@@ -348,20 +365,66 @@ public class BookingServiceTest
     }
 
     [Fact]
-    public async Task CancelBookingById_WhenConfirmed_ChangesStatus()
+    public async Task CancelBookingById_WhenAlreadyCancelled_ThrowsWithoutReleasingAnotherSeat()
     {
         // Arrange
-        var evt = await CreateTestEventAsync();
+        var totalSeats = 2;
+        var evt = await CreateTestEventAsync(totalSeats);
         var booking = await CreateBookingAsync(evt.Id);
-        booking.Confirm();
-        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var seatsBeforeCancellation = evt.AvailableSeats;
+        await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var seatsAfterCancellation = evt.AvailableSeats;
 
         // Act
-        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
 
         // Assert
-        cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
-        cancelled.ProcessedAt.Should().NotBeNull();
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        seatsBeforeCancellation.Should().Be(totalSeats - 1);
+        seatsAfterCancellation.Should().Be(totalSeats);
+        evt.AvailableSeats.Should().Be(seatsAfterCancellation);
+    }
+
+    [Fact]
+    public async Task CancelBookingById_WhenRejected_ThrowsWithoutReleasingSeat()
+    {
+        // Arrange
+        var totalSeats = 2;
+        var evt = await CreateTestEventAsync(totalSeats);
+        var booking = await CreateBookingAsync(evt.Id);
+        booking.Reject();
+        evt.ReleaseSeats();
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var seatsBeforeCancellation = evt.AvailableSeats;
+
+        // Act
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        booking.Status.Should().Be(BookingStatusEnum.Rejected);
+        evt.AvailableSeats.Should().Be(seatsBeforeCancellation);
+        evt.AvailableSeats.Should().Be(totalSeats);
+    }
+
+    [Fact]
+    public async Task CancelBookingById_WhenEventEnded_ThrowsWithoutReleasingSeat()
+    {
+        // Arrange
+        var totalSeats = 2;
+        var evt = await CreateTestEventAsync(totalSeats);
+        var booking = await CreateBookingAsync(evt.Id);
+        evt.EndAt = DateTime.UtcNow.AddMinutes(-1);
+        var seatsBeforeCancellation = evt.AvailableSeats;
+
+        // Act
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<EventEndedException>();
+        booking.Status.Should().Be(BookingStatusEnum.Pending);
+        evt.AvailableSeats.Should().Be(seatsBeforeCancellation);
+        evt.AvailableSeats.Should().Be(totalSeats - 1);
     }
 
     [Fact]

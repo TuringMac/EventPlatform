@@ -13,15 +13,6 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<Booking> CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken)
-    {
-        var booking = await _context.Bookings.FindAsync([bookingId], cancellationToken)
-            ?? throw new KeyNotFoundException($"Бронь {bookingId} не найдена.");
-
-        booking.Cancel();
-        await _context.SaveChangesAsync(cancellationToken);
-        return booking;
-    }
 
     public async Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken)
     {
@@ -34,8 +25,6 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
             .Where(b => b.EventId == eventId && b.UserId == userId)
             .Select(b => b.Id)
             .FirstOrDefaultAsync(cancellationToken);
-        if (booking == default)
-            throw new KeyNotFoundException($"Бронь пользователя {userId} на мероприятие {eventId} не найдена.");
         return booking;
     }
 

@@ -270,23 +270,28 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task CancelBookingAsync_PersistsCancelledStatus()
+    public async Task UpdateAsync_PersistsCancelledBookingAndReleasedSeat_WhenEventIsTracked()
     {
         // Arrange
         await fixture.ResetDatabaseAsync();
-        var evt = await ArrangeEventAsync();
+        var totalSeats = 2;
+        var evt = await ArrangeEventAsync(seats: totalSeats);
         var booking = new Booking(evt.Id, _userId);
-        booking.Confirm();
         await using var context = fixture.CreateContext();
         var repository = new BookingRepository(context);
+        var trackedEvent = await context.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
+        trackedEvent.TryReserveSeats().Should().BeTrue();
         await repository.AddAsync(booking, TestContext.Current.CancellationToken);
+        booking.Confirm();
+        booking.Cancel();
+        trackedEvent.ReleaseSeats();
 
         // Act
-        var id = await repository.GetBookingIdByEventAndUserAsync(evt.Id, _userId, TestContext.Current.CancellationToken);
-        await repository.CancelBookingAsync(id, TestContext.Current.CancellationToken);
+        await repository.UpdateAsync(booking, TestContext.Current.CancellationToken);
 
         // Assert
         await using var verify = fixture.CreateContext();
         (await verify.Bookings.SingleAsync(b => b.Id == booking.Id)).Status.Should().Be(BookingStatusEnum.Cancelled);
+        (await verify.Events.SingleAsync(e => e.Id == evt.Id)).AvailableSeats.Should().Be(totalSeats);
     }
 }

@@ -57,6 +57,9 @@ public class Booking : IEntity
     }
     public void Cancel()
     {
+        if (Status == BookingStatusEnum.Cancelled || Status == BookingStatusEnum.Rejected)
+            throw new InvalidOperationException($"Бронь уже отменена");
+
         Status = BookingStatusEnum.Cancelled;
         ProcessedAt = DateTime.UtcNow;
     }
