@@ -1,5 +1,6 @@
 ﻿using EventPlatform.Application.DTO;
 using EventPlatform.Application.Interfaces;
+using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
 using Microsoft.Extensions.Logging;
 
@@ -25,6 +26,9 @@ internal class UserService(IUserRepository userRepository, ITokenGenerator token
 
     public async Task<User> CreateAsync(UserRequest entity, CancellationToken cancellationToken)
     {
+        if (await userRepository.GetUserByLogin(entity.Login, cancellationToken) != null)
+            throw new UserAlreadyExistsException($"Пользователь с логином {entity.Login} уже существует.");
+
         var hashedPassword = entity.Password.ToHashString();
         var user = new User(entity.Login, hashedPassword, entity.Role);
         await userRepository.AddAsync(user, cancellationToken);

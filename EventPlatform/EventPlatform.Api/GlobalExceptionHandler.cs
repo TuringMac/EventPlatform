@@ -34,6 +34,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             EventEndedException => StatusCodes.Status400BadRequest,
             BookingLimitReachedException => StatusCodes.Status409Conflict,
             BookingAlreadyCancelledException => StatusCodes.Status409Conflict,
+            UserAlreadyExistsException => StatusCodes.Status400BadRequest,
 
             _ => StatusCodes.Status500InternalServerError
         };

@@ -1,6 +1,7 @@
 using EventPlatform.Application;
 using EventPlatform.Application.DTO;
 using EventPlatform.Application.Interfaces;
+using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,24 @@ public class UserServiceTests
         user.Role.Should().Be(request.Role);
         user.PasswordHash.Should().Be(request.Password.ToHashString()).And.NotBe(request.Password);
         _repository.Verify(r => r.AddAsync(user, TestContext.Current.CancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenLoginAlreadyExists_ThrowsWithoutSaving()
+    {
+        // Arrange
+        var request = new UserRequest { Login = "alice", Password = "secret", Role = UserRoleEnum.User };
+        var existingUser = new User(request.Login, "existing".ToHashString(), UserRoleEnum.User);
+        _repository.Setup(r => r.GetUserByLogin(request.Login, TestContext.Current.CancellationToken))
+            .ReturnsAsync(existingUser);
+
+        // Act
+        var act = () => _service.CreateAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UserAlreadyExistsException>();
+        _repository.Verify(r => r.GetUserByLogin(request.Login, TestContext.Current.CancellationToken), Times.Once);
+        _repository.Verify(r => r.AddAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
