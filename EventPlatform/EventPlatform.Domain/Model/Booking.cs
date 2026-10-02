@@ -57,12 +57,7 @@ public class Booking : IEntity
     }
     public void Cancel()
     {
-        if (Status == BookingStatusEnum.Confirmed)
-        {
-            Status = BookingStatusEnum.Cancelled;
-            ProcessedAt = DateTime.UtcNow;
-        }
-        else
-            throw new InvalidOperationException($"Перевести в статус {BookingStatusEnum.Cancelled} можно только из статуса {BookingStatusEnum.Confirmed}");
+        Status = BookingStatusEnum.Cancelled;
+        ProcessedAt = DateTime.UtcNow;
     }
 }

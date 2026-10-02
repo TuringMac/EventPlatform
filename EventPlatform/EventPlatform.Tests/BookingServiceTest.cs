@@ -332,6 +332,22 @@ public class BookingServiceTest
     }
 
     [Fact]
+    public async Task CancelBookingById_WhenPending_ChangesStatus()
+    {
+        // Arrange
+        var evt = await CreateTestEventAsync();
+        var booking = await CreateBookingAsync(evt.Id);
+        await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
+        cancelled.ProcessedAt.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task CancelBookingById_WhenConfirmed_ChangesStatus()
     {
         // Arrange
