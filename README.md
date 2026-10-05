@@ -7,16 +7,17 @@ PostgreSQL
 ## Запуск приложения
 
 1. Получение `git clone -b sprint-8 https://github.com/TuringMac/EventPlatform`  
-2. Сборка `dotnet build ./EventPlatform/EventPlatform.Api`  
+2. Сборка `dotnet build ./EventPlatform/`  
 3. Строка подключения в файле **appsettings.Development.json**: `Host=<server>;Port=5432;Database=<db_name>;Username=postgres;Password=postgres` где:  
 3.1. Host - адрес сервера;  
 3.2. Database название БД;  
 3.3. Username/Password учетные данные подключаемого пользователя.  
 4. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
 5. БД создается автоматически Миграциями  
+5.1. Инициализируется первый пользователь-админ с параметрами из конфигурации (Admin:Username)  
 6. API https://localhost:7068  
 7. Swagger https://localhost:7068/swagger/index.html  
-8. Тестирование  
+8. Тестирование `dotnet test ./EventPlatform/`  
 8.1. Юнит-тесты `dotnet test ./EventPlatform/EventPlatform.Tests`  
 8.2. Интеграционные тесты (требуется docker) `dotnet test ./EventPlatform/EventPlatform.IntegrationTests`  
 
@@ -154,7 +155,7 @@ GET `/api/bookings/{id}` Проверка состояния брони
 }
 ```
 
-Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
+Status (0 - Pending, 1 - Confirmed, 2 - Rejected, 3 - Cancelled)
 
 ## Логика
 
