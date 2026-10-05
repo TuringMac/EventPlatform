@@ -38,7 +38,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
+        var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id, TestContext.Current.CancellationToken);
         saved.EventId.Should().Be(evt.Id);
         saved.Status.Should().Be(BookingStatusEnum.Pending);
         saved.ProcessedAt.Should().BeNull();
@@ -64,8 +64,8 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
-        var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id);
+        var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id, TestContext.Current.CancellationToken);
+        var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
         savedBooking.EventId.Should().Be(evt.Id);
         savedEvent.AvailableSeats.Should().Be(3);
     }
@@ -80,7 +80,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(booking);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -121,7 +121,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(booking);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -134,7 +134,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
+        var saved = await verify.Bookings.SingleAsync(b => b.Id == booking.Id, TestContext.Current.CancellationToken);
         saved.Status.Should().Be(BookingStatusEnum.Confirmed);
         saved.ProcessedAt.Should().NotBeNull();
         saved.ProcessedAt.Should().BeCloseTo(tracked.ProcessedAt!.Value, PostgreSqlFixture.DatePrecision);
@@ -164,8 +164,8 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id);
-        var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id);
+        var savedBooking = await verify.Bookings.SingleAsync(b => b.Id == booking.Id, TestContext.Current.CancellationToken);
+        var savedEvent = await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
         savedBooking.Status.Should().Be(BookingStatusEnum.Rejected);
         savedBooking.ProcessedAt.Should().NotBeNull();
         savedEvent.AvailableSeats.Should().Be(2);
@@ -185,11 +185,11 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.Add(first);
-            await arrangeContext.SaveChangesAsync();
-            await Task.Delay(20);
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
             arrangeContext.Bookings.Add(second);
             arrangeContext.Bookings.Add(confirmed);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -212,7 +212,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Bookings.AddRange(new Booking(evt.Id, _userId), new Booking(evt.Id, _userId), new Booking(evt.Id, _userId));
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -259,7 +259,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
         cancelled.Cancel();
         await using var context = fixture.CreateContext();
         context.Bookings.AddRange(active, cancelled);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var repository = new BookingRepository(context);
 
         // Act
@@ -291,7 +291,7 @@ public class BookingRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        (await verify.Bookings.SingleAsync(b => b.Id == booking.Id)).Status.Should().Be(BookingStatusEnum.Cancelled);
-        (await verify.Events.SingleAsync(e => e.Id == evt.Id)).AvailableSeats.Should().Be(totalSeats);
+        (await verify.Bookings.SingleAsync(b => b.Id == booking.Id, TestContext.Current.CancellationToken)).Status.Should().Be(BookingStatusEnum.Cancelled);
+        (await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken)).AvailableSeats.Should().Be(totalSeats);
     }
 }

@@ -77,7 +77,7 @@ public class UserRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        (await verify.Users.AnyAsync(u => u.Id == user.Id)).Should().BeFalse();
+        (await verify.Users.AnyAsync(u => u.Id == user.Id, TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]

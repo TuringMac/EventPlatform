@@ -24,7 +24,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert — читаем из реальной БД через отдельный контекст
         await using var verifyContext = fixture.CreateContext();
-        var saved = await verifyContext.Events.SingleAsync(e => e.Id == evt.Id);
+        var saved = await verifyContext.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
 
         saved.Title.Should().Be("Conference");
         saved.TotalSeats.Should().Be(evt.TotalSeats);
@@ -45,7 +45,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
             var user = new User("owner", "hash", UserRoleEnum.User);
             arrangeContext.Users.Add(user);
             arrangeContext.Bookings.Add(new Booking(evt.Id, user.Id));
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -84,7 +84,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.Add(evt);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -100,7 +100,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var saved = await verify.Events.SingleAsync(e => e.Id == evt.Id);
+        var saved = await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
         saved.Title.Should().Be("Updated title");
         saved.Description.Should().Be("Updated description");
         saved.EndAt.Should().BeCloseTo(newEnd, DatePrecision);
@@ -115,7 +115,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.Add(evt);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -128,7 +128,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        var saved = await verify.Events.SingleAsync(e => e.Id == evt.Id);
+        var saved = await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
         saved.AvailableSeats.Should().Be(4);
         saved.TotalSeats.Should().Be(5);
     }
@@ -142,7 +142,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.Add(evt);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -153,7 +153,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Assert
         await using var verify = fixture.CreateContext();
-        (await verify.Events.AnyAsync(e => e.Id == evt.Id)).Should().BeFalse();
+        (await verify.Events.AnyAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
                 PostgreSqlFixture.NewEvent("Event A"),
                 PostgreSqlFixture.NewEvent("Event B"),
                 PostgreSqlFixture.NewEvent("Event C"));
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -209,7 +209,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
             arrangeContext.Events.AddRange(
                 PostgreSqlFixture.NewEvent("Alpha Concert"),
                 PostgreSqlFixture.NewEvent("Beta Meetup"));
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
@@ -238,7 +238,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.AddRange(early, mid, late);
-            await arrangeContext.SaveChangesAsync();
+            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var context = fixture.CreateContext();
