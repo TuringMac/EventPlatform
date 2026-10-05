@@ -16,7 +16,7 @@ internal class UserService(IUserRepository userRepository, ITokenGenerator token
         logger.LogInformation("Пользователь аутентифицирован: {UserId}, {Login}", user.Id, user.Login);
 
         var token = await tokenGenerator.GenerateToken(user, cancellationToken);
-        logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, login);
+        logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, user.Login);
 
         return token;
     }

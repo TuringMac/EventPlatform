@@ -65,15 +65,16 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         return evt;
     }
 
-    public async Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken)
+    public async Task UpdateAsync(Guid id, EventDto obj, CancellationToken cancellationToken)
     {
-        ValidateEvent(id, obj);
         var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
-        evt.Title = obj.Title;
-        evt.Description = obj.Description;
-        evt.StartAt = obj.StartAt;
-        evt.EndAt = obj.EndAt;
+        evt.UpdateDetails(obj.Title,
+            obj.Description ?? string.Empty,
+            obj.StartAt,
+            obj.EndAt
+        );
+        ValidateEvent(id, evt);
         await _eventRepository.UpdateAsync(id, evt, cancellationToken);
     }
 

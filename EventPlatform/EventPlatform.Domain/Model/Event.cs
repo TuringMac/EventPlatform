@@ -70,4 +70,12 @@ public class Event : IEntity
     {
         Interlocked.Add(ref this._AvailableSeats, count);
     }
+
+    public void UpdateDetails(string title, string? description, DateTime startAt, DateTime endAt)
+    {
+        Title = title;
+        Description = description;
+        StartAt = startAt;
+        EndAt = endAt;
+    }
 }

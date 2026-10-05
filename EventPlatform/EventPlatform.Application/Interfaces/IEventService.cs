@@ -16,6 +16,6 @@ public interface IEventService
     Task AddAsync(Event obj, CancellationToken cancellationToken);
     Task<PaginatedResult<Event>> GetAllAsync(CancellationToken cancellationToken, string? title, DateTime? from, DateTime? to, int? page = 1, int? pageSize = 10);
     Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task UpdateAsync(Guid id, Event obj, CancellationToken cancellationToken);
+    Task UpdateAsync(Guid id, EventDto obj, CancellationToken cancellationToken);
     Task DeleteAsync(Guid eventId, CancellationToken cancellationToken);
 }

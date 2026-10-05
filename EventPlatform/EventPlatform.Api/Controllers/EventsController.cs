@@ -99,14 +99,8 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
     {
-        var evt = await _eventService.GetByIdAsync(id, cancellationToken);
-        evt.Title = value.Title;
-        evt.Description = value.Description;
-        evt.StartAt = value.StartAt;
-        evt.EndAt = value.EndAt;
-
-        await _eventService.UpdateAsync(id, evt, cancellationToken);
-        _logger.LogDebug("Событие {Id} обновлено", evt.Id);
+        await _eventService.UpdateAsync(id, value, cancellationToken);
+        _logger.LogDebug("Событие {Id} обновлено", id);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
