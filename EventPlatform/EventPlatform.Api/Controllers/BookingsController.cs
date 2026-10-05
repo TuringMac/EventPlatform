@@ -1,7 +1,9 @@
 ﻿using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
+using EventPlatform.Infrastructure.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Claims;
 
@@ -9,7 +11,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BookingsController(IBookingService _bookingService, IConfiguration configuration) : ControllerBase
+public class BookingsController(IBookingService _bookingService, IOptions<BookingOptions> bookingOptions) : ControllerBase
 {
     [Authorize]
     [HttpGet("{id:guid}")]
@@ -69,7 +71,7 @@ public class BookingsController(IBookingService _bookingService, IConfiguration 
         var book = await _bookingService.CreateBookingAsync(
             eventId,
             userId,
-            limit: int.Parse(configuration["Booking:PerUserLimit"] ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")),
+            bookingOptions.Value.PerUserLimit,
             cancellationToken);
         return AcceptedAtAction(
             nameof(GetById),
