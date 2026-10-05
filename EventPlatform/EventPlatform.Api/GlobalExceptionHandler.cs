@@ -19,13 +19,6 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        // 1. Log the unhandled runtime error
-        _logger.LogError(exception,
-                "Unhandled exception. Method: {Method}, Path: {Path}",
-                httpContext.Request.Method,
-                httpContext.Request.Path);
-
-        // 2. Format a standardized RFC-compliant error payload
         int status = exception switch
         {
             ArgumentException => StatusCodes.Status400BadRequest,
@@ -40,6 +33,17 @@ public class GlobalExceptionHandler : IExceptionHandler
 
             _ => StatusCodes.Status500InternalServerError
         };
+
+        if (status == StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(exception, "Внутренняя ошибка. Метод: {Method}, путь: {Path}",
+                httpContext.Request.Method, httpContext.Request.Path);
+        }
+        else
+        {
+            _logger.LogWarning("Ошибка запроса ({Status}): {Error}. Метод: {Method}, путь: {Path}",
+                status, exception.Message, httpContext.Request.Method, httpContext.Request.Path);
+        }
 
         var problemDetails = new ProblemDetails
         {
