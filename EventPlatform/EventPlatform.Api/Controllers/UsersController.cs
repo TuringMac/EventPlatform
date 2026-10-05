@@ -41,7 +41,6 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
     [HttpPost]
     public async Task<ActionResult<ApiResult>> Add(UserRequest value, CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var user = await userService.CreateAsync(value, cancellationToken);
         logger.LogDebug("DTO сконвертирован");
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, new ApiResult
