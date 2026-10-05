@@ -4,5 +4,5 @@ namespace EventPlatform.Application.Interfaces;
 
 public interface ITokenGenerator
 {
-    Task<string> GenerateToken(User user, string jwtKey, int lifetime, CancellationToken cancellationToken);
+    Task<string> GenerateToken(User user, CancellationToken cancellationToken);
 }

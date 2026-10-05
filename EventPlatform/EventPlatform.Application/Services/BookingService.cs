@@ -24,7 +24,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         {
             var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
             if (evt is null)
-                throw new KeyNotFoundException($"Event {eventId} not found");
+                throw new KeyNotFoundException($"Событие {eventId} не найдено");
             if (evt.EndAt < DateTime.UtcNow)
                 throw new EventEndedException("Событие уже завершилось");
 

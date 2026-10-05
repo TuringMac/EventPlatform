@@ -8,17 +8,14 @@ namespace EventPlatform.Application.Services;
 
 internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, ILogger<UserService> logger) : IUserService
 {
-    public async Task<string> GenerateJwtAsync(string login, string password, string jwtKey, int lifetime, CancellationToken cancellationToken)
+    public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetUserByLogin(login, cancellationToken);
         if (user == null || user.PasswordHash != password.ToHashString())
             throw new UnauthorizedAccessException("Неверный логин или пароль.");
         logger.LogInformation("Пользователь аутентифицирован: {UserId}, {Login}", user.Id, user.Login);
 
-        var token = await tokenGenerator.GenerateToken(
-            user,
-            jwtKey,
-            lifetime, cancellationToken);
+        var token = await tokenGenerator.GenerateToken(user, cancellationToken);
         logger.LogInformation("JWT сгенерирован для пользователя: {UserId}, {Login}", user.Id, login);
 
         return token;
