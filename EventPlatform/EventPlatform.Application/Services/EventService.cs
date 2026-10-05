@@ -67,6 +67,8 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
 
     public async Task UpdateAsync(Guid id, EventDto obj, CancellationToken cancellationToken)
     {
+        if(id != obj.Id)
+            throw new ArgumentException("Id в URL не совпадает с Id в теле запроса.", nameof(obj.Id));
         var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
         evt.UpdateDetails(obj.Title,

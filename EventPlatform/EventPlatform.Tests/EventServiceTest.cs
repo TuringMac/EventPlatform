@@ -1,6 +1,6 @@
-﻿using EventPlatform.Application.Interfaces;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Application.Interfaces;
 using EventPlatform.Application.Services;
-using EventPlatform.Domain.Interfaces;
 using EventPlatform.Domain.Model;
 using EventPlatform.Infrastructure.DbContexts;
 using EventPlatform.Infrastructure.Repositories;
@@ -76,11 +76,11 @@ public class EventServiceTest
         var str = "Changed description";
         var evt = await CreateTestEventAsync();
         var id = evt.Id;
-        evt = await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
-        evt.Description = str;
+        var update = ToEventDto(evt);
+        update.Description = str;
 
         // Act
-        await _eventService.UpdateAsync(id, evt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(id, update, TestContext.Current.CancellationToken);
 
         // Assert
         evt = await _eventService.GetByIdAsync(id, TestContext.Current.CancellationToken);
@@ -95,7 +95,7 @@ public class EventServiceTest
         var evt = await CreateTestEventAsync();
 
         // Act
-        var act = async () => await _eventService.UpdateAsync(anotherId, evt, TestContext.Current.CancellationToken);
+        var act = async () => await _eventService.UpdateAsync(anotherId, ToEventDto(evt), TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -130,13 +130,13 @@ public class EventServiceTest
         var earlyEvt = await CreateTestEventAsync();
         earlyEvt.StartAt = earlyEvt.StartAt.AddHours(-8);
         earlyEvt.EndAt = earlyEvt.EndAt.AddHours(-2);
-        await _eventService.UpdateAsync(earlyEvt.Id, earlyEvt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(earlyEvt.Id, ToEventDto(earlyEvt), TestContext.Current.CancellationToken);
 
         var midEvt = await CreateTestEventAsync();
 
         var lateEvt = await CreateTestEventAsync();
         lateEvt.EndAt = lateEvt.EndAt.AddHours(8);
-        await _eventService.UpdateAsync(lateEvt.Id, lateEvt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(lateEvt.Id, ToEventDto(lateEvt), TestContext.Current.CancellationToken);
 
 
         var earlySingleFrom = earlyEvt.StartAt.AddHours(1);
@@ -242,7 +242,7 @@ public class EventServiceTest
         var evt = await CreateTestEventAsync();
 
         // Act
-        var act = async () => await _eventService.UpdateAsync(gid, evt, TestContext.Current.CancellationToken);
+        var act = async () => await _eventService.UpdateAsync(gid, ToEventDto(evt), TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -275,7 +275,7 @@ public class EventServiceTest
         evt.EndAt = evt.StartAt.AddDays(-1);
 
         // Act
-        var act = async () => await _eventService.UpdateAsync(gid, evt, TestContext.Current.CancellationToken);
+        var act = async () => await _eventService.UpdateAsync(gid, ToEventDto(evt), TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should()
@@ -298,8 +298,8 @@ public class EventServiceTest
         evtMax.EndAt = DateTime.MaxValue;
 
         // Act
-        var actMin = async () => await _eventService.UpdateAsync(evtMin.Id, evtMin, TestContext.Current.CancellationToken);
-        var actMax = async () => await _eventService.UpdateAsync(evtMax.Id, evtMax, TestContext.Current.CancellationToken);
+        var actMin = async () => await _eventService.UpdateAsync(evtMin.Id, ToEventDto(evtMin), TestContext.Current.CancellationToken);
+        var actMax = async () => await _eventService.UpdateAsync(evtMax.Id, ToEventDto(evtMax), TestContext.Current.CancellationToken);
 
         // Assert
         await actMin.Should().NotThrowAsync();
@@ -355,4 +355,14 @@ public class EventServiceTest
                 TestContext.Current.CancellationToken
             );
     }
+
+    static EventDto ToEventDto(Event evt, Guid? id = null) => new()
+    {
+        Id = id ?? evt.Id,
+        Title = evt.Title,
+        Description = evt.Description,
+        StartAt = evt.StartAt,
+        EndAt = evt.EndAt,
+        TotalSeats = evt.TotalSeats
+    };
 }

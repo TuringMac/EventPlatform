@@ -64,18 +64,16 @@ public class UserServiceTests
     {
         // Arrange
         var login = "alice";
-        var jwtKey = "test-key";
-        var lifetimeMinutes = 30;
         var user = new User(login, "secret".ToHashString(), UserRoleEnum.User);
         _repository.Setup(r => r.GetUserByLogin(login, It.IsAny<CancellationToken>())).ReturnsAsync(user);
-        _tokenGenerator.Setup(g => g.GenerateToken(user, jwtKey, lifetimeMinutes, It.IsAny<CancellationToken>())).ReturnsAsync("jwt");
+        _tokenGenerator.Setup(g => g.GenerateToken(user, It.IsAny<CancellationToken>())).ReturnsAsync("jwt");
 
         // Act
-        var token = await _service.GenerateJwtAsync(login, "secret", jwtKey, lifetimeMinutes, TestContext.Current.CancellationToken);
+        var token = await _service.GenerateJwtAsync(login, "secret", TestContext.Current.CancellationToken);
 
         // Assert
         token.Should().Be("jwt");
-        _tokenGenerator.Verify(g => g.GenerateToken(user, jwtKey, lifetimeMinutes, TestContext.Current.CancellationToken), Times.Once);
+        _tokenGenerator.Verify(g => g.GenerateToken(user, TestContext.Current.CancellationToken), Times.Once);
     }
 
     [Theory]
@@ -89,7 +87,7 @@ public class UserServiceTests
                 .ReturnsAsync(new User("alice", "secret".ToHashString(), UserRoleEnum.User));
 
         // Act
-        var act = () => _service.GenerateJwtAsync("alice", password, "test-key", 30, TestContext.Current.CancellationToken);
+        var act = () => _service.GenerateJwtAsync("alice", password, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedAccessException>();

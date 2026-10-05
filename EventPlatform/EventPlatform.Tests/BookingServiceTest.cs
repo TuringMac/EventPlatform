@@ -1,4 +1,5 @@
-﻿using EventPlatform.Application.Exceptions;
+﻿using EventPlatform.Application.DTO;
+using EventPlatform.Application.Exceptions;
 using EventPlatform.Application.Interfaces;
 using EventPlatform.Application.Services;
 using EventPlatform.Domain.Exceptions;
@@ -167,7 +168,7 @@ public class BookingServiceTest
         var statusBefore = booking.Status;
         evt.StartAt = DateTime.UtcNow.AddHours(-1);
         evt.EndAt = evt.StartAt.AddSeconds(10);
-        await _eventService.UpdateAsync(evt.Id, evt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(evt.Id, ToEventDto(evt), TestContext.Current.CancellationToken);
 
         // Act
         await _bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken);
@@ -194,12 +195,12 @@ public class BookingServiceTest
         // Отклоняем бронь - место освобождается
         evt.StartAt = DateTime.UtcNow.AddHours(-1);
         evt.EndAt = evt.StartAt.AddSeconds(10);
-        await _eventService.UpdateAsync(evt.Id, evt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(evt.Id, ToEventDto(evt), TestContext.Current.CancellationToken);
         // Событие уже закончилось
         await _bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken);
         var newAvailableSeats = evt.AvailableSeats;
         evt.EndAt = DateTime.UtcNow.AddDays(1);
-        await _eventService.UpdateAsync(evt.Id, evt, TestContext.Current.CancellationToken);
+        await _eventService.UpdateAsync(evt.Id, ToEventDto(evt), TestContext.Current.CancellationToken);
         // Можно снова создать бронь без исключения
         booking = await CreateBookingAsync(evt.Id);
 
@@ -546,6 +547,16 @@ public class BookingServiceTest
                 TestContext.Current.CancellationToken
             );
     }
+
+    static EventDto ToEventDto(Event evt) => new()
+    {
+        Id = evt.Id,
+        Title = evt.Title,
+        Description = evt.Description,
+        StartAt = evt.StartAt,
+        EndAt = evt.EndAt,
+        TotalSeats = evt.TotalSeats
+    };
 
     Task<Booking> CreateBookingAsync(Guid eventId) =>
         _bookingService.CreateBookingAsync(eventId, Guid.NewGuid(), BookingLimit, TestContext.Current.CancellationToken);
