@@ -1,4 +1,5 @@
-﻿using EventPlatform.Domain.Exceptions;
+﻿using EventPlatform.Application.Exceptions;
+using EventPlatform.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +30,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         {
             ArgumentException => StatusCodes.Status400BadRequest,
             UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            ForbiddenException => StatusCodes.Status403Forbidden,
             KeyNotFoundException => StatusCodes.Status404NotFound,
             NoAvailableSeatsException => StatusCodes.Status409Conflict,
             EventEndedException => StatusCodes.Status400BadRequest,

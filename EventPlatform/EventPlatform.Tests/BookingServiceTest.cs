@@ -1,4 +1,5 @@
-﻿using EventPlatform.Application.Interfaces;
+﻿using EventPlatform.Application.Exceptions;
+using EventPlatform.Application.Interfaces;
 using EventPlatform.Application.Services;
 using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
@@ -316,7 +317,21 @@ public class BookingServiceTest
     }
 
     [Fact]
-    public async Task GetBookingById_WhenDifferentUser_ThrowsUnauthorizedAccessException()
+    public async Task GetBookingById_WhenOwner_ReturnsBooking()
+    {
+        // Arrange
+        var evt = await CreateTestEventAsync();
+        var booking = await CreateBookingAsync(evt.Id);
+
+        // Act
+        var result = await _bookingService.GetBookingByIdAsync(booking.Id, booking.UserId, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().Be(booking);
+    }
+
+    [Fact]
+    public async Task GetBookingById_WhenDifferentUser_ThrowsForbiddenException()
     {
         // Arrange
         var evt = await CreateTestEventAsync();
@@ -326,9 +341,21 @@ public class BookingServiceTest
         var act = () => _bookingService.GetBookingByIdAsync(booking.Id, Guid.NewGuid(), TestContext.Current.CancellationToken);
 
         // Assert
-        await act.Should().ThrowAsync<UnauthorizedAccessException>();
-        (await _bookingService.GetBookingByIdAsync(booking.Id, booking.UserId, TestContext.Current.CancellationToken))
-            .Id.Should().Be(booking.Id);
+        await act.Should().ThrowAsync<ForbiddenException>();
+    }
+
+    [Fact]
+    public async Task GetBookingById_WhenNotFoundForUser_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var bookingId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        // Act
+        var act = () => _bookingService.GetBookingByIdAsync(bookingId, userId, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
@@ -341,7 +368,7 @@ public class BookingServiceTest
         await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
@@ -357,11 +384,59 @@ public class BookingServiceTest
         await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
         cancelled.ProcessedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CancelBookingById_WhenAdminIsNotOwner_CancelsBooking()
+    {
+        // Arrange
+        var evt = await CreateTestEventAsync();
+        var booking = await CreateBookingAsync(evt.Id);
+        var adminId = Guid.NewGuid();
+
+        // Act
+        var cancelled = await _bookingService.CancelBookingByIdAsync(booking.Id, adminId, UserRoleEnum.Admin, TestContext.Current.CancellationToken);
+
+        // Assert
+        cancelled.Status.Should().Be(BookingStatusEnum.Cancelled);
+    }
+
+    [Fact]
+    public async Task CancelBookingById_WhenDifferentUser_ThrowsWithoutChangingBookingOrSeats()
+    {
+        // Arrange
+        var totalSeats = 2;
+        var evt = await CreateTestEventAsync(totalSeats);
+        var booking = await CreateBookingAsync(evt.Id);
+        var seatsBeforeCancellation = evt.AvailableSeats;
+        var otherUserId = Guid.NewGuid();
+
+        // Act
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, otherUserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        booking.Status.Should().Be(BookingStatusEnum.Pending);
+        evt.AvailableSeats.Should().Be(seatsBeforeCancellation);
+    }
+
+    [Fact]
+    public async Task CancelBookingById_WhenBookingDoesNotExist_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var bookingId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        // Act
+        var act = () => _bookingService.CancelBookingByIdAsync(bookingId, userId, UserRoleEnum.User, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
     [Fact]
@@ -372,11 +447,11 @@ public class BookingServiceTest
         var evt = await CreateTestEventAsync(totalSeats);
         var booking = await CreateBookingAsync(evt.Id);
         var seatsBeforeCancellation = evt.AvailableSeats;
-        await _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        await _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
         var seatsAfterCancellation = evt.AvailableSeats;
 
         // Act
-        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<BookingAlreadyCancelledException>();
@@ -398,7 +473,7 @@ public class BookingServiceTest
         var seatsBeforeCancellation = evt.AvailableSeats;
 
         // Act
-        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<BookingAlreadyCancelledException>();
@@ -418,7 +493,7 @@ public class BookingServiceTest
         var seatsBeforeCancellation = evt.AvailableSeats;
 
         // Act
-        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, TestContext.Current.CancellationToken);
+        var act = () => _bookingService.CancelBookingByIdAsync(booking.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<EventEndedException>();
@@ -437,7 +512,7 @@ public class BookingServiceTest
         await _db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var cancelled = await _bookingService.CancelBookingAsync(evt.Id, booking.UserId, TestContext.Current.CancellationToken);
+        var cancelled = await _bookingService.CancelBookingAsync(evt.Id, booking.UserId, UserRoleEnum.User, TestContext.Current.CancellationToken);
 
         // Assert
         cancelled.Id.Should().Be(booking.Id);

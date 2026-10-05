@@ -67,8 +67,8 @@ public class BookingsController(IBookingService _bookingService, IConfiguration 
             return Forbid();
         var userId = currentUserId;
         var book = await _bookingService.CreateBookingAsync(
-            eventId, 
-            userId, 
+            eventId,
+            userId,
             limit: int.Parse(configuration["Booking:PerUserLimit"] ?? throw new InvalidOperationException("Booking:PerUserLimit не задан")),
             cancellationToken);
         return AcceptedAtAction(
@@ -83,11 +83,15 @@ public class BookingsController(IBookingService _bookingService, IConfiguration 
             });
     }
 
-    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [Authorize]
     [HttpDelete("{bookingId:guid}")]
     public async Task<ActionResult<ApiResult>> CancelBookingById(Guid bookingId, CancellationToken cancellationToken)
     {
-        await _bookingService.CancelBookingByIdAsync(bookingId, cancellationToken);
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || !TryGetUserRole(out var userRole))
+            return Forbid();
+
+        await _bookingService.CancelBookingByIdAsync(bookingId, userId, userRole, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
@@ -100,15 +104,24 @@ public class BookingsController(IBookingService _bookingService, IConfiguration 
     [HttpDelete("~/api/events/{eventId:guid}/book")]
     public async Task<ActionResult<ApiResult>> CancelBooking(Guid eventId, CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || !TryGetUserRole(out var userRole))
             return Forbid();
-        var userId = currentUserId;
-        var book = await _bookingService.CancelBookingAsync(eventId, userId, cancellationToken);
+
+        var book = await _bookingService.CancelBookingAsync(eventId, userId, userRole, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
             StatusCode = HttpStatusCode.NoContent,
             Message = "Бронирование отменено"
         });
+    }
+
+    private bool TryGetUserRole(out UserRoleEnum userRole)
+    {
+        var roleClaim = User.FindFirstValue(ClaimTypes.Role);
+        return Enum.TryParse(roleClaim, out userRole)
+            && Enum.IsDefined(userRole)
+            && roleClaim == userRole.ToString();
     }
 }

@@ -1,7 +1,7 @@
-﻿using EventPlatform.Application.Interfaces;
+﻿using EventPlatform.Application.Exceptions;
+using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace EventPlatform.Application.Services;
@@ -58,7 +58,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         }
     }
 
-    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
+    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, UserRoleEnum userRole, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
@@ -69,20 +69,24 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         if (bookingId == Guid.Empty)
             throw new KeyNotFoundException($"Бронирование для события {eventId} и пользователя {userId} не найдено");
 
-        var booking = await CancelBookingByIdAsync(bookingId, cancellationToken);
+        var booking = await CancelBookingByIdAsync(bookingId, userId, userRole, cancellationToken);
         return booking;
     }
 
-    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
+    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, Guid userId, UserRoleEnum userRole, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentException(nameof(bookingId));
+        if (userId == Guid.Empty)
+            throw new ArgumentException(nameof(userId));
 
         await _bookingSemaphore.WaitAsync(cancellationToken);
         try
         {
             var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Бронирование {bookingId} не найдено");
+            if (booking.UserId != userId && userRole != UserRoleEnum.Admin)
+                throw new ForbiddenException($"Нет прав на отмену бронирования {bookingId}");
             var evt = await _eventRepository.GetByIdAsync(booking.EventId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Событие {booking.EventId} не найдено");
             if (evt.EndAt < DateTime.UtcNow)
@@ -104,15 +108,18 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
         return await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Booking {bookingId} not found");
+            ?? throw new KeyNotFoundException($"Бронь {bookingId} не найдена");
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
-        return await _bookingRepository.GetByIdAsync(bookingId, userId, cancellationToken)
-            ?? throw new UnauthorizedAccessException($"User {userId} is not authorized to access Booking {bookingId}");
+
+        var booking = await GetBookingByIdAsync(bookingId, cancellationToken);
+        if (booking.UserId != userId)
+            throw new ForbiddenException($"Пользователь {userId} не имеет прав для доступа к брони {bookingId}");
+        return booking;
     }
 
     public async Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)
