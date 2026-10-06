@@ -7,18 +7,24 @@ namespace EventPlatform.Infrastructure.Repositories;
 
 public class EventRepository(AppDbContext _context) : IEventRepository
 {
-    public async Task AddAsync(Event evt, CancellationToken cancellationToken = default)
+    public async Task AddAsync(Event evt, CancellationToken cancellationToken)
     {
         await _context.Events.AddAsync(evt, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<int> DeleteAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
     {
-        return await _context.Events.Where(e => e.Id == eventId).ExecuteDeleteAsync(cancellationToken);
+        var evt = await _context.Events.FindAsync([eventId], cancellationToken);
+        if (evt == null)
+        {
+            throw new KeyNotFoundException($"Мероприятие с ID {eventId} не найдено.");
+        }
+        _context.Events.Remove(evt);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return await _context.Events
             .Include(e => e.Bookings)
@@ -31,7 +37,7 @@ public class EventRepository(AppDbContext _context) : IEventRepository
         DateTime? to,
         int page,
         int pageSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var eventsQuery = _context.Events.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(title))
@@ -50,7 +56,7 @@ public class EventRepository(AppDbContext _context) : IEventRepository
         return (events, page, events.Count, totalAmount);
     }
 
-    public async Task UpdateAsync(Event evt, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Guid id, Event evt, CancellationToken cancellationToken)
     {
         if (_context.Entry(evt).State == EntityState.Detached)
             _context.Events.Update(evt);

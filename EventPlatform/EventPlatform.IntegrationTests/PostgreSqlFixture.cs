@@ -13,12 +13,12 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
 
     public static readonly TimeSpan DatePrecision = TimeSpan.FromMilliseconds(1);
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await _postgres.DisposeAsync();
     }
@@ -39,7 +39,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         NpgsqlConnection.ClearAllPools();
         await using var context = CreateContext();
         await context.Database.ExecuteSqlRawAsync(
-            """TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE""");
+            """TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE""");
     }
 
     public static Event NewEvent(

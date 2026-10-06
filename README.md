@@ -6,19 +6,38 @@ PostgreSQL
 
 ## Запуск приложения
 
-1. Получение `git clone -b sprint-7 https://github.com/TuringMac/EventPlatform`  
-2. Сборка `dotnet build ./EventPlatform/EventPlatform.Api`  
+1. Получение `git clone -b sprint-8 https://github.com/TuringMac/EventPlatform`  
+2. Сборка `dotnet build ./EventPlatform/`  
 3. Строка подключения в файле **appsettings.Development.json**: `Host=<server>;Port=5432;Database=<db_name>;Username=postgres;Password=postgres` где:  
 3.1. Host - адрес сервера;  
 3.2. Database название БД;  
 3.3. Username/Password учетные данные подключаемого пользователя.  
 4. Запуск `dotnet run --project ./EventPlatform/EventPlatform.Api --launch-profile "https"`  
 5. БД создается автоматически Миграциями  
+5.1. Инициализируется первый пользователь-админ с параметрами из конфигурации (Admin:Username)  
 6. API https://localhost:7068  
 7. Swagger https://localhost:7068/swagger/index.html  
-8. Тестирование  
+8. Тестирование `dotnet test ./EventPlatform/`  
 8.1. Юнит-тесты `dotnet test ./EventPlatform/EventPlatform.Tests`  
 8.2. Интеграционные тесты (требуется docker) `dotnet test ./EventPlatform/EventPlatform.IntegrationTests`  
+
+## Роли и авторизация
+
+- Без токена доступны просмотр мероприятий (`GET /api/events`, `GET /api/events/{id}`), проверка состояния (`GET /api/health`), регистрация (`POST /api/auth/register`) и вход (`POST /api/auth/login`). Остальные маршруты API требуют JWT: без него возвращается 401, при недостаточных правах — 403.
+- `User` может бронировать мероприятие (`POST /api/events/{eventId}/book`), просматривать свою бронь (`GET /api/bookings/{id}`) и отменять свою бронь через `DELETE /api/events/{eventId}/book`. Чужие брони ему недоступны.
+- `Admin` также может создавать, изменять и удалять мероприятия (`POST`, `PUT`, `DELETE /api/events`), просматривать все брони мероприятия и пользователей, управлять пользователями и отменять любую бронь по `DELETE /api/bookings/{bookingId}`.
+- Публичная регистрация создаёт только пользователя с ролью `User`. Учётная запись `Admin` создаётся при инициализации базы из настроек `Admin:Username` и `Admin:Password` (в `appsettings.Development.json` указаны значения для локальной разработки).
+
+### Получение JWT через Swagger
+
+1. Запустите API с профилем `https` и откройте `https://localhost:7068/swagger/index.html` (Swagger доступен в окружении Development).
+2. При необходимости выполните `POST /api/auth/register` с JSON-полями `login` и `password`, чтобы создать пользователя с ролью `User`. Для входа как `Admin` используйте учётные данные из настроек `Admin`.
+3. Выполните `POST /api/auth/login` с теми же `login` и `password`. Скопируйте значение `token` из ответа.
+4. Нажмите **Authorize**, вставьте токен **без** префикса `Bearer` и подтвердите. Теперь можно вызывать защищённые маршруты; для смены роли войдите под другой учётной записью и повторите авторизацию.
+
+### Конфигурация JWT
+
+Параметры задаются в секции `Jwt`: `Issuer` (издатель), `Audience` (аудитория), `Key` (секрет подписи) и `Lifetime` (время жизни токена в минутах). Для локальной разработки `Issuer`, `Audience` и `Key` указаны в `EventPlatform/EventPlatform.Api/appsettings.Development.json`, а `Lifetime` (15 минут) — в `appsettings.json`. Для продакшна задайте собственный длинный случайный секрет `Jwt:Key` через переменную окружения `Jwt__Key` или защищённое хранилище секретов, а не храните его в репозитории; также настройте `Jwt:Issuer` и `Jwt:Audience` для своего окружения.
 
 ## Описание API
 
@@ -136,7 +155,7 @@ GET `/api/bookings/{id}` Проверка состояния брони
 }
 ```
 
-Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
+Status (0 - Pending, 1 - Confirmed, 2 - Rejected, 3 - Cancelled)
 
 ## Логика
 
@@ -171,7 +190,7 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
 
 ### Управление миграциями
 
-Создание миграций `dotnet ef migrations add init --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
+Создание миграций `dotnet ef migrations add user_scheme --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
 Ручное выполнение миграций `dotnet ef database update --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
 
 ## Структура проекта
@@ -216,9 +235,20 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected)
 
 ### EventPlatform.IntegrationTests
 
-Интеграционные тесты репозиториев Infrastructure на реальном PostgreSQL. База запускается в контейнере через Testcontainers, поэтому перед запуском этих тестов должен быть доступен Docker.
+Интеграционные тесты репозиториев Infrastructure на реальном PostgreSQL. База запускается в контейнере через Testcontainers, поэтому перед запуском этих тестов должен быть доступен Docker. Поддерживается запуск тестовых контейнеров в среде WSL с установленным Docker Engine.
 
 ## Changelog
+
+### Sprint-8
+
+- Доработаны и добавлены тесты
+- Все изменяемые параметры вынесены в конфигурацию
+- Нарушения бизнес-правил сопровождается специфическим исключением
+- Бизнес-правила расширены проверкой даты события и лимита броней для пользователя
+- Созданы миграции для поддержания БД в актуальном состоянии
+- Бронь принадлежит пользователю
+- Модель пользователя с соответствующей таблицей, репозиторием и сервисом  
+- Аутентификация, Авторизация, генерация токенов  
 
 ### Sprint-7
 
