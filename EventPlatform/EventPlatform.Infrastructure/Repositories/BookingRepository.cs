@@ -13,7 +13,6 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-
     public async Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken)
     {
         return await _context.Bookings.CountAsync(b => b.UserId == userId && b.Status != BookingStatusEnum.Cancelled, cancellationToken);
@@ -23,6 +22,8 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
     {
         var booking = await _context.Bookings
             .Where(b => b.EventId == eventId && b.UserId == userId)
+            .Where(b => b.Status == BookingStatusEnum.Pending || b.Status == BookingStatusEnum.Confirmed) // Скипаем отмененные бронирования
+            .OrderByDescending(b => b.CreatedAt) // На текущем этапе бизнес логики, отменяем самую свежую бронь. Может и не придется обрабатывать воркеру.
             .Select(b => b.Id)
             .FirstOrDefaultAsync(cancellationToken);
         return booking;
