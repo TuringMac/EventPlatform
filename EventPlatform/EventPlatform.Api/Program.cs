@@ -15,6 +15,11 @@ builder.Services.AddOptions<JwtOptions>()
             .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Ключ JWT должен быть не менее 32 байт.")
             .Validate(options => options.Lifetime > 0, "Время жизни JWT должно быть положительным.")
             .ValidateOnStart();
+builder.Services.AddOptions<BookingOptions>()
+            .Bind(builder.Configuration.GetSection(BookingOptions.SectionName))
+            .Validate(options => options.PerUserLimit > 0, "Лимит бронирований на пользователя должен быть положительным.")
+            .ValidateOnStart();
+
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();

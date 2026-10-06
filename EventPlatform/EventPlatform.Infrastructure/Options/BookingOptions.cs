@@ -7,5 +7,5 @@ namespace EventPlatform.Infrastructure.Options;
 public class BookingOptions
 {
     public const string SectionName = "Booking";
-    public int PerUserLimit { get; set; } = 5;
+    public int PerUserLimit { get; set; }
 }
