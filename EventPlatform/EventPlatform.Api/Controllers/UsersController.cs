@@ -81,14 +81,9 @@ public class UsersController(IUserService userService, ILogger<UsersController> 
 
     [AllowAnonymous]
     [HttpPost("~/api/auth/register")]
-    public async Task<IActionResult> Register([FromBody] LoginPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register([FromBody] UserRequest request, CancellationToken cancellationToken)
     {
-        await userService.CreateAsync(new UserRequest
-        {
-            Login = request.Login,
-            Password = request.Password,
-            Role = Enum.Parse<UserRoleEnum>(request.Role ?? UserRoleEnum.User.ToString())
-        }, cancellationToken);
+        await userService.CreateAsync(request, cancellationToken);
 
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {

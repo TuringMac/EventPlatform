@@ -9,5 +9,4 @@ public class LoginPasswordRequest
     [Required]
     [MinLength(2, ErrorMessage = "Пароль должен быть как минимум 2 символа.")]
     public required string Password { get; set; }
-    public string? Role { get; set; }
 }
