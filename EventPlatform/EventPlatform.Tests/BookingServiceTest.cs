@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Application.DTO;
 using EventPlatform.Application.Exceptions;
 using EventPlatform.Application.Interfaces;
+using EventPlatform.Application.Options;
 using EventPlatform.Application.Services;
 using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
@@ -33,6 +34,7 @@ public class BookingServiceTest
             builder.AddDebug();
             builder.SetMinimumLevel(LogLevel.Information);
         });
+        services.AddOptions<BookingOptions>().Configure(options => options.PerUserLimit = BookingLimit);
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IEventService, EventService>();
@@ -293,10 +295,10 @@ public class BookingServiceTest
         var userId = Guid.NewGuid();
         var evt = await CreateTestEventAsync(seats);
         for (var i = 0; i < BookingLimit; i++)
-            await _bookingService.CreateBookingAsync(evt.Id, userId, BookingLimit, TestContext.Current.CancellationToken);
+            await _bookingService.CreateBookingAsync(evt.Id, userId, TestContext.Current.CancellationToken);
 
         // Act
-        var act = () => _bookingService.CreateBookingAsync(evt.Id, userId, BookingLimit, TestContext.Current.CancellationToken);
+        var act = () => _bookingService.CreateBookingAsync(evt.Id, userId, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<BookingLimitReachedException>();
@@ -559,7 +561,7 @@ public class BookingServiceTest
     };
 
     Task<Booking> CreateBookingAsync(Guid eventId) =>
-        _bookingService.CreateBookingAsync(eventId, Guid.NewGuid(), BookingLimit, TestContext.Current.CancellationToken);
+        _bookingService.CreateBookingAsync(eventId, Guid.NewGuid(), TestContext.Current.CancellationToken);
 
     async Task<Booking> CreateTestBookingAsync(Guid eventId)
     {

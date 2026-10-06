@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EventPlatform.Infrastructure.Options;
+﻿namespace EventPlatform.Application.Options;
 
 public class BookingOptions
 {

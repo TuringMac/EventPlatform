@@ -1,23 +1,27 @@
 ﻿using EventPlatform.Application.Exceptions;
 using EventPlatform.Application.Interfaces;
+using EventPlatform.Application.Options;
 using EventPlatform.Domain.Exceptions;
 using EventPlatform.Domain.Model;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EventPlatform.Application.Services;
 
-public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, ILogger<BookingService> _logger) : IBookingService
+public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, IOptions<BookingOptions> _bookingOptions, ILogger<BookingService> _logger) : IBookingService
 {
     private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
     private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, int limit, CancellationToken cancellationToken)
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
         if (userId == Guid.Empty)
             throw new ArgumentException(nameof(userId));
+
+        var limit = _bookingOptions.Value.PerUserLimit;
 
         await _bookingSemaphore.WaitAsync(cancellationToken);
         try

@@ -1,5 +1,6 @@
 using EventPlatform.Api;
 using EventPlatform.Application;
+using EventPlatform.Application.Options;
 using EventPlatform.Infrastructure;
 using EventPlatform.Infrastructure.DbContexts;
 using EventPlatform.Infrastructure.Options;

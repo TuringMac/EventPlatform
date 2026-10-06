@@ -1,9 +1,7 @@
 ﻿using EventPlatform.Application.Interfaces;
 using EventPlatform.Domain.Model;
-using EventPlatform.Infrastructure.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using System.Net;
 using System.Security.Claims;
 
@@ -11,7 +9,7 @@ namespace EventPlatform.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BookingsController(IBookingService _bookingService, IOptions<BookingOptions> bookingOptions) : ControllerBase
+public class BookingsController(IBookingService _bookingService) : ControllerBase
 {
     [Authorize]
     [HttpGet("{id:guid}")]
@@ -42,9 +40,6 @@ public class BookingsController(IBookingService _bookingService, IOptions<Bookin
     [HttpGet("~/api/users/{userId:guid}/bookings")]
     public async Task<ActionResult<ApiBaseResult>> GetByUserId(Guid userId, CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
-            return Forbid();
-
         return Ok(new ApiResult<IEnumerable<Booking>>
         {
             Data = await _bookingService.GetBookingsByUserIdAsync(userId, cancellationToken),
@@ -71,7 +66,6 @@ public class BookingsController(IBookingService _bookingService, IOptions<Bookin
         var book = await _bookingService.CreateBookingAsync(
             eventId,
             userId,
-            bookingOptions.Value.PerUserLimit,
             cancellationToken);
         return AcceptedAtAction(
             nameof(GetById),
