@@ -1,18 +1,31 @@
 using EventPlatform.Api;
-using EventPlatform.Infrastructure.DbContexts;
-using EventPlatform.Infrastructure;
 using EventPlatform.Application;
+using EventPlatform.Application.Options;
+using EventPlatform.Infrastructure;
+using EventPlatform.Infrastructure.DbContexts;
+using EventPlatform.Infrastructure.Options;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOptions<JwtOptions>()
+            .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Issuer), "Издатель JWT не настроен.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Audience), "Потребитель JWT не настроен.")
+            .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Ключ JWT должен быть не менее 32 байт.")
+            .Validate(options => options.Lifetime > 0, "Время жизни JWT должно быть положительным.")
+            .ValidateOnStart();
+builder.Services.AddOptions<BookingOptions>()
+            .Bind(builder.Configuration.GetSection(BookingOptions.SectionName))
+            .Validate(options => options.PerUserLimit > 0, "Лимит бронирований на пользователя должен быть положительным.")
+            .ValidateOnStart();
 
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddPresentation();
 
-// Памятка на будущее. Как я понимаю, это более современное решение .NET8+
-// Register ProblemDetails and your custom exception handler
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
@@ -42,13 +55,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    await db.Database.MigrateAsync();
 }
 
 app.MapControllers();

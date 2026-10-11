@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace EventPlatform.Domain.Model;
 
-public class Event
+public class Event : IEntity
 {
     public Guid Id { get; init; }
     [Required(AllowEmptyStrings = false, ErrorMessage = "Название обязательно для заполнения")]
@@ -69,5 +69,13 @@ public class Event
     public void ReleaseSeats(int count = 1)
     {
         Interlocked.Add(ref this._AvailableSeats, count);
+    }
+
+    public void UpdateDetails(string title, string? description, DateTime startAt, DateTime endAt)
+    {
+        Title = title;
+        Description = description;
+        StartAt = startAt;
+        EndAt = endAt;
     }
 }
