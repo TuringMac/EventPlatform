@@ -46,6 +46,7 @@ public static class DependencyInjection
 
         services.AddScoped<ITokenGenerator, TokenGenerator>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IMessageBrokerRepository, MessageBrokerRepository>();
 
         return services;
     }

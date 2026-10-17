@@ -15,6 +15,11 @@ builder.Services.AddOptions<JwtOptions>()
             .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Ключ JWT должен быть не менее 32 байт.")
             .Validate(options => options.Lifetime > 0, "Время жизни JWT должно быть положительным.")
             .ValidateOnStart();
+builder.Services.AddOptions<MessageBrokerOptions>()
+            .Bind(builder.Configuration.GetSection(MessageBrokerOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.BootstrapServers), "BootstrapServers не настроен.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Topic), "Topic не настроен.")
+            .ValidateOnStart();
 
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);

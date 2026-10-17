@@ -5,7 +5,7 @@ using EventPlatform.Users.Domain.Model;
 
 namespace EventPlatform.Users.Application.Services;
 
-internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, ILogger<UserService> logger) : IUserService
+internal class UserService(IUserRepository userRepository, ITokenGenerator tokenGenerator, IMessageBrokerRepository messageBrokerRepository, ILogger<UserService> logger) : IUserService
 {
     public async Task<string> GenerateJwtAsync(string login, string password, CancellationToken cancellationToken)
     {
@@ -29,6 +29,7 @@ internal class UserService(IUserRepository userRepository, ITokenGenerator token
         var user = new User(entity.Login, hashedPassword, entity.Role);
         await userRepository.AddAsync(user, cancellationToken);
         logger.LogInformation("Пользователь создан: {UserId}, {Login}", user.Id, user.Login);
+        await messageBrokerRepository.UserCreatedMessageAsync(user.Id, cancellationToken);
         return user;
     }
 
