@@ -1,4 +1,4 @@
-﻿using EventPlatform.Users.Infrastructure.Options;
+﻿using EventPlatform.Common.Infrastructure.Options;
 using EventPlatform.Users.Application.Interfaces;
 using EventPlatform.Users.Domain.Model;
 using Microsoft.Extensions.Options;

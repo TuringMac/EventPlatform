@@ -9,6 +9,7 @@
     <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" Id="4de92b6d-5de8-4b23-86d2-b6aaf24a91d3" />
   </Folder>
   <Project Path="EventPlatform.Bookings/EventPlatform.Bookings.csproj" Id="5d910e34-7a13-4087-9b6a-3c4648201989" />
+  <Project Path="EventPlatform.Common/EventPlatform.Common.csproj" Id="75a197f0-ff95-423a-83ea-62a44fdf0e5a" />
   <Project Path="EventPlatform.Contracts/EventPlatform.Contracts.csproj" Id="8f68f20e-7803-4044-9fae-604c18486ad8" />
   <Project Path="EventPlatform.Events/EventPlatform.Events.csproj" Id="8b0ad0f7-463a-41e3-8785-ba69e2e35947" />
   <Project Path="EventPlatform.Users/EventPlatform.Users.csproj" Id="c23e0c02-6f9c-40e8-8383-cd3c0a7b3685" />

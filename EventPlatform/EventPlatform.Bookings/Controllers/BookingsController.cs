@@ -1,5 +1,6 @@
 ﻿using EventPlatform.Bookings.Application.Interfaces;
 using EventPlatform.Bookings.Domain.Model;
+using EventPlatform.Common;
 using EventPlatform.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

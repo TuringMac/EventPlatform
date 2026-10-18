@@ -1,4 +1,5 @@
-﻿using EventPlatform.Contracts;
+﻿using EventPlatform.Common;
+using EventPlatform.Contracts;
 using EventPlatform.Events.Application.DTO;
 using EventPlatform.Events.Application.Interfaces;
 using EventPlatform.Events.Domain.Model;

@@ -1,4 +1,4 @@
-﻿using EventPlatform.Users.Application.Exceptions;
+﻿using EventPlatform.Common.Application.Exceptions;
 using EventPlatform.Users.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;

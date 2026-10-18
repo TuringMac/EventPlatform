@@ -1,4 +1,4 @@
-﻿namespace EventPlatform.Events.Application.Interfaces;
+﻿namespace EventPlatform.Common.Application.Interfaces;
 
 public interface IRepositoryCrud<TEntity>
 {

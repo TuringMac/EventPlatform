@@ -1,5 +1,5 @@
 ﻿using EventPlatform.Bookings.Domain.Exceptions;
-using EventPlatform.Bookings.Domain.Interfaces;
+using EventPlatform.Common.Domain.Interfaces;
 using System.Text.Json.Serialization;
 
 namespace EventPlatform.Bookings.Domain.Model;

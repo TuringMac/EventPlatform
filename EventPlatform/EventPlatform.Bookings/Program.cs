@@ -3,6 +3,7 @@ using EventPlatform.Bookings.Application;
 using EventPlatform.Bookings.Application.Options;
 using EventPlatform.Bookings.Infrastructure;
 using EventPlatform.Bookings.Infrastructure.DbContexts;
+using EventPlatform.Common.Infrastructure.Options;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 

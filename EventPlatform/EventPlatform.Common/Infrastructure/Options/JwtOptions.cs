@@ -1,4 +1,4 @@
-﻿namespace EventPlatform.Events.Infrastructure.Options;
+﻿namespace EventPlatform.Common.Infrastructure.Options;
 
 public class JwtOptions
 {

@@ -1,4 +1,4 @@
-namespace EventPlatform.Events.Application.Exceptions;
+namespace EventPlatform.Common.Application.Exceptions;
 
 public class ForbiddenException : Exception
 {

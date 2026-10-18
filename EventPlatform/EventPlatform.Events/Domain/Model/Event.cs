@@ -1,4 +1,4 @@
-﻿using EventPlatform.Events.Domain.Interfaces;
+﻿using EventPlatform.Common.Domain.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 

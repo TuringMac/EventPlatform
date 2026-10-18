@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EventPlatform.Common\EventPlatform.Common.csproj" />
     <ProjectReference Include="..\EventPlatform.Contracts\EventPlatform.Contracts.csproj" />
   </ItemGroup>
 

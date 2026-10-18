@@ -1,11 +1,11 @@
-﻿using EventPlatform.Users.Application.DTO;
+﻿using EventPlatform.Common;
+using EventPlatform.Users.Application.DTO;
 using EventPlatform.Users.Application.Interfaces;
 using EventPlatform.Users.Domain.Model;
 using EventPlatform.Users.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Security.Claims;
 
 namespace EventPlatform.Users.Controllers;
 

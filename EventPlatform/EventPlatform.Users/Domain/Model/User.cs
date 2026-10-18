@@ -1,7 +1,4 @@
-﻿using EventPlatform.Users.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using EventPlatform.Common.Domain.Interfaces;
 
 namespace EventPlatform.Users.Domain.Model;
 
