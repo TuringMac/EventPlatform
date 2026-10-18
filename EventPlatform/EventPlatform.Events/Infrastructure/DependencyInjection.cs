@@ -22,6 +22,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IMessageBrokerRepository, MessageBrokerRepository>();
 
         return services;
     }

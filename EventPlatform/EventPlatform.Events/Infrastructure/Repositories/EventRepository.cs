@@ -26,9 +26,7 @@ public class EventRepository(AppDbContext _context) : IEventRepository
 
     public async Task<Event?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _context.Events
-            .Include(e => e.Bookings)
-            .SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
+        return await _context.Events.FindAsync([id], cancellationToken);
     }
 
     public async Task<(IEnumerable<Event> events, int currentPage, int pageItems, int totalAmount)> GetPagedAsync(

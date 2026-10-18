@@ -34,9 +34,6 @@ public class Event : IEntity
         private set => _AvailableSeats = value;
     }
 
-    [JsonIgnore]
-    public List<Booking> Bookings { get; set; } = [];
-
     Event() { }
 
     public Event(

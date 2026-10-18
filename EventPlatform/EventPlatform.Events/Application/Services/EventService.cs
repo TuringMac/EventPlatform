@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace EventPlatform.Events.Application.Services;
 
-public class EventService(IEventRepository _eventRepository, ILogger<EventService> _logger) : IEventService
+public class EventService(IEventRepository _eventRepository, IMessageBrokerRepository _messageBrokerRepository, ILogger<EventService> _logger) : IEventService
 {
     public async Task<Event> CreateEventAsync(
         Guid id,
@@ -26,7 +26,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
         {
             Description = description,
         };
-        await _eventRepository.AddAsync(evt, cancellationToken);
+        await AddAsync(evt, cancellationToken);
         return evt;
     }
 
@@ -34,6 +34,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
     {
         ValidateEvent(obj);
         await _eventRepository.AddAsync(obj, cancellationToken);
+        await _messageBrokerRepository.EventCreatedMessageAsync(obj.Id, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
@@ -67,7 +68,7 @@ public class EventService(IEventRepository _eventRepository, ILogger<EventServic
 
     public async Task UpdateAsync(Guid id, EventDto obj, CancellationToken cancellationToken)
     {
-        if(id != obj.Id)
+        if (id != obj.Id)
             throw new ArgumentException("Id в URL не совпадает с Id в теле запроса.", nameof(obj.Id));
         var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");

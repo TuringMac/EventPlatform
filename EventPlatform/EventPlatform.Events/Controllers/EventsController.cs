@@ -75,27 +75,6 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         });
     }
 
-    /// <summary>
-    /// Список броней мероприятия
-    /// </summary>
-    /// <param name="eventId">Идентификатор мероприятия</param>
-    /// <returns></returns>
-    /// <response code="409">Нет доступных мест на мероприятие</response>
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
-    [HttpGet("{eventId:guid}/bookings")]
-    public async Task<ActionResult<ApiResult>> GetEventBookings(Guid eventId, CancellationToken cancellationToken)
-    {
-        var evt = await _eventService.GetByIdAsync(eventId, cancellationToken);
-        return Ok(new ApiResult<IEnumerable<Booking>>
-        {
-            Data = evt.Bookings,
-            Success = true,
-            StatusCode = HttpStatusCode.Accepted,
-            Message = "Список броней для мероприятия " + evt.Id
-        });
-    }
-
     [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
