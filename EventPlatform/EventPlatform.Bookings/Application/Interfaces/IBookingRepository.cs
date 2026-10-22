@@ -10,6 +10,7 @@ public interface IBookingRepository
     Task<Booking?> GetByIdAsync(Guid bookingId, CancellationToken cancellationToken);
     Task<Booking?> GetByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Booking>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Booking>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken);
     Task AddAsync(Booking booking, CancellationToken cancellationToken);
     Task UpdateAsync(Booking booking, CancellationToken cancellationToken);
     Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken);

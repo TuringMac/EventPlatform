@@ -89,7 +89,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             || !TryGetUserRole(out var userRole))
             return Forbid();
 
-        await _bookingService.CancelBookingByIdAsync(bookingId, userId, userRole, cancellationToken);
+        await _bookingService.CancelBookingByIdAsync(bookingId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
@@ -106,12 +106,33 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             || !TryGetUserRole(out var userRole))
             return Forbid();
 
-        var book = await _bookingService.CancelBookingAsync(eventId, userId, userRole, cancellationToken);
+        var book = await _bookingService.CancelBookingAsync(eventId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
             StatusCode = HttpStatusCode.NoContent,
             Message = "Бронирование отменено"
+        });
+    }
+
+    /// <summary>
+    /// Список броней мероприятия
+    /// </summary>
+    /// <param name="eventId">Идентификатор мероприятия</param>
+    /// <returns></returns>
+    /// <response code="409">Нет доступных мест на мероприятие</response>
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [HttpGet("{eventId:guid}/bookings")]
+    public async Task<ActionResult<ApiResult>> GetEventBookings(Guid eventId, CancellationToken cancellationToken)
+    {
+        var evt = await _bookingService.GetByEventIdAsync(eventId, cancellationToken);
+        return Ok(new ApiResult<IEnumerable<Guid>>
+        {
+            Data = evt.Select(b => b.Id),
+            Success = true,
+            StatusCode = HttpStatusCode.Accepted,
+            Message = "Список броней для мероприятия " + eventId
         });
     }
 

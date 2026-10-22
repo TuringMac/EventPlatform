@@ -1,6 +1,0 @@
-@EventPlatform.Bookings_HostAddress = http://localhost:5242
-
-GET {{EventPlatform.Bookings_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

@@ -1,6 +1,7 @@
 ﻿using EventPlatform.Bookings.Application.Interfaces;
 using EventPlatform.Bookings.Infrastructure.DbContexts;
 using EventPlatform.Bookings.Infrastructure.Repositories;
+using EventPlatform.Bookings.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventPlatform.Bookings.Infrastructure;
@@ -17,6 +18,9 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddSingleton<IBookingMessageBrokerRepository, BookingMessageBrokerRepository>();
+
+        services.AddHostedService<BookingBackgroundService>();
 
         return services;
     }

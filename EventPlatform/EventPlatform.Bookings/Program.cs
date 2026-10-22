@@ -20,6 +20,12 @@ builder.Services.AddOptions<BookingOptions>()
             .Bind(builder.Configuration.GetSection(BookingOptions.SectionName))
             .Validate(options => options.PerUserLimit > 0, "Лимит бронирований на пользователя должен быть положительным.")
             .ValidateOnStart();
+builder.Services.AddOptions<BookingMessageBrokerOptions>()
+            .Bind(builder.Configuration.GetSection(BookingMessageBrokerOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.BootstrapServers), "BootstrapServers не настроен.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.MessageTypeHeaderName), "MessageTypeHeaderName не настроен.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.ConsumerGroup), "ConsumerGroup не настроен.")
+            .ValidateOnStart();
 
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);

@@ -29,6 +29,14 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
         return booking;
     }
 
+    public async Task<IReadOnlyList<Booking>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken)
+    {
+        return await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.EventId == eventId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Booking?> GetByIdAsync(Guid bookingId, CancellationToken cancellationToken)
     {
         return await _context.Bookings.SingleOrDefaultAsync(b => b.Id == bookingId, cancellationToken);

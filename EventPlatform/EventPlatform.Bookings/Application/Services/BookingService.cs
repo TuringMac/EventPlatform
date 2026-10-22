@@ -1,19 +1,14 @@
-﻿using EventPlatform.Bookings.Application.Exceptions;
-using EventPlatform.Bookings.Application.Interfaces;
+﻿using EventPlatform.Bookings.Application.Interfaces;
 using EventPlatform.Bookings.Application.Options;
 using EventPlatform.Bookings.Domain.Exceptions;
 using EventPlatform.Bookings.Domain.Model;
-using EventPlatform.Contracts;
+using EventPlatform.Common.Application.Exceptions;
 using Microsoft.Extensions.Options;
 
 namespace EventPlatform.Bookings.Application.Services;
 
-public class BookingService(IBookingRepository _bookingRepository, IEventRepository _eventRepository, IOptions<BookingOptions> _bookingOptions, ILogger<BookingService> _logger) : IBookingService
+internal class BookingService(IBookingRepository _bookingRepository, IBookingMessageBrokerRepository _messageBrokerRepository, IOptions<BookingOptions> _bookingOptions, ILogger<BookingService> _logger) : IBookingService
 {
-    private static readonly SemaphoreSlim _bookingSemaphore = new(1, 1);
-    private static readonly SemaphoreSlim _processingSemaphore = new(1, 1);
-    private readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
-
     public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
@@ -23,46 +18,17 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
 
         var limit = _bookingOptions.Value.PerUserLimit;
 
-        await _bookingSemaphore.WaitAsync(cancellationToken);
-        try
-        {
-            var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
-            if (evt is null)
-                throw new KeyNotFoundException($"Событие {eventId} не найдено");
-            if (evt.EndAt < DateTime.UtcNow)
-                throw new EventEndedException("Событие уже завершилось");
+        if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= limit)
+            throw new BookingLimitReachedException($"Достигнут лимит {limit} Броней для Пользователя: {userId}");
 
-            if (await _bookingRepository.CountUserBookings(userId, cancellationToken) >= limit)
-                throw new BookingLimitReachedException($"Достигнут лимит {limit} Броней для Пользователя: {userId}");
-
-            if (!evt.TryReserveSeats())
-            {
-                _logger.LogInformation("Booking запрос отклонен, нет доступных мест");
-                throw new NoAvailableSeatsException("Нет доступных мест для события");
-            }
-
-            try
-            {
-                var booking = new Booking(eventId, userId);
-                await _bookingRepository.AddAsync(booking, cancellationToken);
-                _logger.LogInformation("Бронь {bookingId} добавлена в БД", booking.Id);
-                _logger.LogInformation("Событие {eventId} обновлено в БД", evt.Id);
-                return booking;
-            }
-            catch (Exception ex)
-            {
-                evt.ReleaseSeats();
-                _logger.LogError(ex, "Ошибка при сохранении Booking запроса в БД, места возвращены");
-                throw;
-            }
-        }
-        finally
-        {
-            _bookingSemaphore.Release();
-        }
+        var booking = new Booking(eventId, userId);
+        await _bookingRepository.AddAsync(booking, cancellationToken);
+        _logger.LogInformation("Бронь {bookingId} добавлена в БД", booking.Id);
+        await _messageBrokerRepository.CreateRequestedAsync(booking.Id, eventId, userId, cancellationToken);
+        return booking;
     }
 
-    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, UserRoleEnum userRole, CancellationToken cancellationToken)
+    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
@@ -73,44 +39,33 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         if (bookingId == Guid.Empty)
             throw new KeyNotFoundException($"Бронирование для события {eventId} и пользователя {userId} не найдено");
 
-        var booking = await CancelBookingByIdAsync(bookingId, userId, userRole, cancellationToken);
+        var booking = await CancelBookingByIdAsync(bookingId, userId, isAdmin, cancellationToken);
         return booking;
     }
 
-    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, Guid userId, UserRoleEnum userRole, CancellationToken cancellationToken)
+    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentException(nameof(bookingId));
         if (userId == Guid.Empty)
             throw new ArgumentException(nameof(userId));
 
-        await _bookingSemaphore.WaitAsync(cancellationToken);
-        try
-        {
-            var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Бронирование {bookingId} не найдено");
-            if (booking.UserId != userId && userRole != UserRoleEnum.Admin)
-                throw new ForbiddenException($"Нет прав на отмену бронирования {bookingId}");
-            var evt = await _eventRepository.GetByIdAsync(booking.EventId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Событие {booking.EventId} не найдено");
-            if (evt.EndAt < DateTime.UtcNow)
-                throw new EventEndedException("Событие уже завершилось");
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Бронирование {bookingId} не найдено");
+        if (booking.UserId != userId && !isAdmin)
+            throw new ForbiddenException($"Нет прав на отмену бронирования {bookingId}");
 
-            booking.Cancel();
-            evt.ReleaseSeats();
-            await _bookingRepository.UpdateAsync(booking, cancellationToken);
-            return booking;
-        }
-        finally
-        {
-            _bookingSemaphore.Release();
-        }
+        booking.Cancel();
+        await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        await _messageBrokerRepository.CancelRequestedAsync(booking.Id, booking.EventId, cancellationToken);
+        return booking;
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentNullException(nameof(bookingId));
+
         return await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
             ?? throw new KeyNotFoundException($"Бронь {bookingId} не найдена");
     }
@@ -118,7 +73,9 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
-            throw new ArgumentNullException(nameof(bookingId));
+            throw new ArgumentNullException(nameof(bookingId), "Идентификатор брони не может быть пустым");
+        if (userId == Guid.Empty)
+            throw new ArgumentNullException(nameof(userId), "Идентификатор пользователя не может быть пустым");
 
         var booking = await GetBookingByIdAsync(bookingId, cancellationToken);
         if (booking.UserId != userId)
@@ -129,7 +86,7 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
     public async Task<IReadOnlyList<Booking>> GetBookingsByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         if (userId == Guid.Empty)
-            throw new ArgumentException("Идентификатор пользователя не может быть пустым", nameof(userId));
+            throw new ArgumentNullException(nameof(userId), "Идентификатор пользователя не может быть пустым");
 
         return await _bookingRepository.GetByUserIdAsync(userId, cancellationToken);
     }
@@ -139,59 +96,29 @@ public class BookingService(IBookingRepository _bookingRepository, IEventReposit
         return await _bookingRepository.GetPendingIdsAsync(batch, cancellationToken);
     }
 
-    public async Task ProcessBookingAsync(Guid bookingId, CancellationToken stoppingToken = default)
+    public async Task ConfirmBookingAsync(Guid bookingId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Обработка брони {bookingId}", bookingId);
-        try
-        {
-            await Task.Delay(ProcessingDelay, stoppingToken);
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking {bookingId} not found");
+        if (booking.Status == BookingStatusEnum.Confirmed) // Идемпотентность
+            return;
+        booking.Confirm();
+        await _bookingRepository.UpdateAsync(booking, cancellationToken);
+    }
 
-            await _processingSemaphore.WaitAsync(stoppingToken);
-            try
-            {
-                var booking = await _bookingRepository.GetByIdAsync(bookingId, stoppingToken);
-                if (booking is null)
-                    throw new KeyNotFoundException($"Booking {bookingId} not found");
+    public async Task RejectBookingAsync(Guid bookingId, CancellationToken cancellationToken)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking {bookingId} not found");
+        if (booking.Status == BookingStatusEnum.Rejected) // Идемпотентность
+            return;
+        booking.Reject();
+        await _bookingRepository.UpdateAsync(booking, cancellationToken);
+    }
 
-                var evt = await _eventRepository.GetByIdAsync(booking.EventId, stoppingToken);
-                try
-                {
-                    if (evt is null)
-                    {
-                        booking.Reject();
-                        _logger.LogWarning("Событие {eventId} не существует. Бронь {bookingId} отменяется.", booking.EventId, booking.Id);
-                    }
-                    else if (evt.EndAt >= DateTime.UtcNow)
-                    {
-                        booking.Confirm();
-                        _logger.LogInformation("Booking запрос {bookingId} подтвержден", booking.Id);
-                    }
-                    else
-                    {
-                        booking.Reject();
-                        evt.ReleaseSeats();
-                        _logger.LogInformation("Бронь {bookingId} от менена, мероприятие закончилось", booking.Id);
-                    }
-                    _logger.LogInformation("Бронь {bookingId} обновлена в БД", booking.Id);
-                }
-                catch (Exception ex)
-                {
-                    booking.Reject();
-                    evt?.ReleaseSeats();
-                    _logger.LogWarning(ex, "Ошибка при обработке брони {bookingId}. Бронь отклонена и обновлена в БД", booking.Id);
-                }
-
-                await _bookingRepository.UpdateAsync(booking, stoppingToken);
-            }
-            finally
-            {
-                _processingSemaphore.Release();
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            _logger.LogWarning("Обработка брони {bookingId} была отменена", bookingId);
-            throw;
-        }
+    public async Task<IReadOnlyList<Booking>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken)
+    {
+        return await _bookingRepository.GetByEventIdAsync(eventId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Бронирования для события {eventId} не найдены");
     }
 }
