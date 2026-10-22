@@ -1,6 +1,5 @@
 ﻿using EventPlatform.Users.Application.Interfaces;
 using EventPlatform.Users.Application.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EventPlatform.Users.Application;
 

@@ -1,8 +1,8 @@
+using EventPlatform.Common.Infrastructure.Options;
 using EventPlatform.Users;
 using EventPlatform.Users.Application;
 using EventPlatform.Users.Infrastructure;
 using EventPlatform.Users.Infrastructure.DbContexts;
-using EventPlatform.Users.Infrastructure.Options;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
@@ -14,11 +14,6 @@ builder.Services.AddOptions<JwtOptions>()
             .Validate(options => !string.IsNullOrWhiteSpace(options.Audience), "Потребитель JWT не настроен.")
             .Validate(options => Encoding.UTF8.GetByteCount(options.Key) >= 32, "Ключ JWT должен быть не менее 32 байт.")
             .Validate(options => options.Lifetime > 0, "Время жизни JWT должно быть положительным.")
-            .ValidateOnStart();
-builder.Services.AddOptions<MessageBrokerOptions>()
-            .Bind(builder.Configuration.GetSection(MessageBrokerOptions.SectionName))
-            .Validate(options => !string.IsNullOrWhiteSpace(options.BootstrapServers), "BootstrapServers не настроен.")
-            .Validate(options => !string.IsNullOrWhiteSpace(options.Topic), "Topic не настроен.")
             .ValidateOnStart();
 
 // Add services to the container.

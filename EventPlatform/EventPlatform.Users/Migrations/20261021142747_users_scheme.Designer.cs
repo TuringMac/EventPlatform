@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EventPlatform.Users.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261017205441_initial")]
-    partial class initial
+    [Migration("20261021142747_users_scheme")]
+    partial class users_scheme
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

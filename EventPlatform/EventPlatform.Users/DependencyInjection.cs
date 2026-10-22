@@ -1,4 +1,4 @@
-﻿using EventPlatform.Users.Infrastructure.Options;
+﻿using EventPlatform.Common.Infrastructure.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
