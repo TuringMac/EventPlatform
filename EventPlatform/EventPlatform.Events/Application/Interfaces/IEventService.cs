@@ -13,4 +13,5 @@ public interface IEventService
     Task DeleteAsync(Guid eventId, CancellationToken cancellationToken);
 
     Task<bool> ReserveSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
+    Task<bool> ReleaseSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
 }

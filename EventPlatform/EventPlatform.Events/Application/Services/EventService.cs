@@ -105,19 +105,36 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         if (evt.EndAt < DateTime.UtcNow)
         {
             _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
-            await _messageBrokerRepository.SeatsReservationFailedAsync(bookingId, cancellationToken);
+            await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
         else if (evt.AvailableSeats <= 0 || !evt.TryReserveSeats())
         {
             _logger.LogInformation("Бронь {bookingId} отклонена, мест нет", bookingId);
-            await _messageBrokerRepository.SeatsReservationFailedAsync(bookingId, cancellationToken);
+            await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
 
         await _eventRepository.UpdateAsync(eventId, evt, cancellationToken);
-        await _messageBrokerRepository.SeatsReservedAsync(bookingId, cancellationToken);
+        await _messageBrokerRepository.SeatsReservedAsync(eventId, bookingId, cancellationToken);
         _logger.LogInformation("Места для Брони {bookingId} зарезервированы", bookingId);
+        return true;
+    }
+
+    public async Task<bool> ReleaseSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken)
+    {
+        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
+        if (evt.EndAt < DateTime.UtcNow)
+        {
+            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            await _messageBrokerRepository.SeatsReleaseFailedAsync(eventId, bookingId, cancellationToken);
+            return false;
+        }
+        evt.ReleaseSeats();
+        await _eventRepository.UpdateAsync(eventId, evt, cancellationToken);
+        await _messageBrokerRepository.SeatsReleasedAsync(eventId, bookingId, cancellationToken);
+        _logger.LogInformation("Места брони {bookingId} освобождены", bookingId);
         return true;
     }
 }

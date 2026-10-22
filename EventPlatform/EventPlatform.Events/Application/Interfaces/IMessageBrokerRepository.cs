@@ -4,6 +4,8 @@ namespace EventPlatform.Events.Application.Interfaces;
 
 internal interface IEventMessageBrokerRepository : IMessageBrokerRepository
 {
-    Task SeatsReservationFailedAsync(Guid bookingId, CancellationToken cancellationToken);
-    Task SeatsReservedAsync(Guid bookingId, CancellationToken cancellationToken);
+    Task SeatsReservationFailedAsync(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
+    Task SeatsReservedAsync(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
+    Task SeatsReleasedAsync(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
+    Task SeatsReleaseFailedAsync(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
 }

@@ -67,6 +67,16 @@ public class EventBackgroundService(IOptions<EventMessageBrokerOptions> options,
                         var eventMessageBrokerRepository = scope.ServiceProvider.GetRequiredService<IEventMessageBrokerRepository>();
                         await eventService.ReserveSeats(booking.EventId, booking.Id, stoppingToken);
                     }
+                    else if (eventType == nameof(BookingCancelRequestedMessage))
+                    {
+                        var booking = JsonSerializer.Deserialize<BookingCancelRequestedMessage>(consumeResult.Message.Value)
+                            ?? throw new InvalidOperationException("Не удалось десериализовать сообщение.");
+
+                        using var scope = scopeFactory.CreateScope();
+                        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+                        var eventMessageBrokerRepository = scope.ServiceProvider.GetRequiredService<IEventMessageBrokerRepository>();
+                        await eventService.ReleaseSeats(booking.EventId, booking.Id, stoppingToken);
+                    }
                     else
                     {
                         logger.LogWarning("Пропущено сообщение с неизвестным типом события: {EventType}", eventType);
