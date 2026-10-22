@@ -2,6 +2,7 @@
 using EventPlatform.Events.Domain.Model;
 using EventPlatform.Events.Infrastructure.DbContexts;
 using EventPlatform.Events.Infrastructure.Repositories;
+using EventPlatform.Events.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,9 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IEventRepository, EventRepository>();
-        services.AddScoped<IMessageBrokerRepository, MessageBrokerRepository>();
+        services.AddSingleton<IEventMessageBrokerRepository, EventMessageBrokerRepository>();
+
+        services.AddHostedService<EventBackgroundService>();
 
         return services;
     }

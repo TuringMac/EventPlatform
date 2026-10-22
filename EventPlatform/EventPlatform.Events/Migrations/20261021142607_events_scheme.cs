@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EventPlatform.Events.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class events_scheme : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

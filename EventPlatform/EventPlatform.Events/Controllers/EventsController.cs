@@ -56,17 +56,9 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
 
     [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPost]
-    public async Task<ActionResult<ApiResult>> Add([FromBody] EventDto value, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResult>> Add([FromBody] EventRequest value, CancellationToken cancellationToken)
     {
-        var evt = await _eventService.CreateEventAsync(
-            value.Id,
-            value.Title,
-            value.Description ?? string.Empty,
-            value.StartAt,
-            value.EndAt,
-            value.TotalSeats,
-            cancellationToken
-        );
+        var evt = await _eventService.CreateEventAsync(value, cancellationToken);
         _logger.LogDebug("DTO сконвертирован");
         return CreatedAtAction(nameof(GetById), new { id = evt.Id }, new ApiResult
         {
@@ -78,7 +70,7 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
 
     [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventDto value, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResult>> Update(Guid id, [FromBody] EventRequest value, CancellationToken cancellationToken)
     {
         await _eventService.UpdateAsync(id, value, cancellationToken);
         _logger.LogDebug("Событие {Id} обновлено", id);

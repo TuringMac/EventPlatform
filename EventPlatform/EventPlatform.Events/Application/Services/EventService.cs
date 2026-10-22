@@ -1,30 +1,22 @@
 ﻿using EventPlatform.Events.Application.DTO;
 using EventPlatform.Events.Application.Interfaces;
 using EventPlatform.Events.Domain.Model;
-using Microsoft.Extensions.Logging;
 
 namespace EventPlatform.Events.Application.Services;
 
-public class EventService(IEventRepository _eventRepository, IMessageBrokerRepository _messageBrokerRepository, ILogger<EventService> _logger) : IEventService
+internal class EventService(IEventRepository _eventRepository, IEventMessageBrokerRepository _messageBrokerRepository, ILogger<EventService> _logger) : IEventService
 {
-    public async Task<Event> CreateEventAsync(
-        Guid id,
-        string title,
-        string description,
-        DateTime startAt,
-        DateTime endAt,
-        int totalSeats,
-        CancellationToken cancellationToken)
+    public async Task<Event> CreateEventAsync(EventRequest eventRequest, CancellationToken cancellationToken)
     {
         var evt = new Event(
-            id,
-            title,
-            startAt,
-            endAt,
-            totalSeats
+            Guid.NewGuid(),
+            eventRequest.Title,
+            eventRequest.StartAt,
+            eventRequest.EndAt,
+            eventRequest.TotalSeats
         )
         {
-            Description = description,
+            Description = eventRequest.Description
         };
         await AddAsync(evt, cancellationToken);
         return evt;
@@ -34,7 +26,6 @@ public class EventService(IEventRepository _eventRepository, IMessageBrokerRepos
     {
         ValidateEvent(obj);
         await _eventRepository.AddAsync(obj, cancellationToken);
-        await _messageBrokerRepository.EventCreatedMessageAsync(obj.Id, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid eventId, CancellationToken cancellationToken)
@@ -66,7 +57,7 @@ public class EventService(IEventRepository _eventRepository, IMessageBrokerRepos
         return evt;
     }
 
-    public async Task UpdateAsync(Guid id, EventDto obj, CancellationToken cancellationToken)
+    public async Task UpdateAsync(Guid id, EventRequest obj, CancellationToken cancellationToken)
     {
         if (id != obj.Id)
             throw new ArgumentException("Id в URL не совпадает с Id в теле запроса.", nameof(obj.Id));
@@ -102,5 +93,31 @@ public class EventService(IEventRepository _eventRepository, IMessageBrokerRepos
     {
         if (Equals(id, Guid.Empty))
             throw new ArgumentException($"{nameof(id)} не может быть пустым", nameof(id));
+    }
+
+    public async Task<bool> ReserveSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken)
+    {
+        ValidateGuid(eventId);
+        ValidateGuid(bookingId);
+
+        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
+        if (evt.EndAt < DateTime.UtcNow)
+        {
+            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            await _messageBrokerRepository.SeatsReservationFailedAsync(bookingId, cancellationToken);
+            return false;
+        }
+        else if (evt.AvailableSeats <= 0 || !evt.TryReserveSeats())
+        {
+            _logger.LogInformation("Бронь {bookingId} отклонена, мест нет", bookingId);
+            await _messageBrokerRepository.SeatsReservationFailedAsync(bookingId, cancellationToken);
+            return false;
+        }
+
+        await _eventRepository.UpdateAsync(eventId, evt, cancellationToken);
+        await _messageBrokerRepository.SeatsReservedAsync(bookingId, cancellationToken);
+        _logger.LogInformation("Места для Брони {bookingId} зарезервированы", bookingId);
+        return true;
     }
 }
