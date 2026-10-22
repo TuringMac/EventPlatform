@@ -89,7 +89,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             || !TryGetUserRole(out var userRole))
             return Forbid();
 
-        await _bookingService.CancelBookingByIdAsync(bookingId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
+        await _bookingService.CancelBookingRequestByIdAsync(bookingId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,
@@ -106,7 +106,7 @@ public class BookingsController(IBookingService _bookingService) : ControllerBas
             || !TryGetUserRole(out var userRole))
             return Forbid();
 
-        var book = await _bookingService.CancelBookingAsync(eventId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
+        await _bookingService.CancelBookingRequestAsync(eventId, userId, userRole == UserRoleEnum.Admin, cancellationToken);
         return StatusCode((int)HttpStatusCode.NoContent, new ApiResult
         {
             Success = true,

@@ -28,7 +28,7 @@ internal class BookingService(IBookingRepository _bookingRepository, IBookingMes
         return booking;
     }
 
-    public async Task<Booking> CancelBookingAsync(Guid eventId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
+    public async Task CancelBookingRequestAsync(Guid eventId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
     {
         if (eventId == Guid.Empty)
             throw new ArgumentException(nameof(eventId));
@@ -39,11 +39,10 @@ internal class BookingService(IBookingRepository _bookingRepository, IBookingMes
         if (bookingId == Guid.Empty)
             throw new KeyNotFoundException($"Бронирование для события {eventId} и пользователя {userId} не найдено");
 
-        var booking = await CancelBookingByIdAsync(bookingId, userId, isAdmin, cancellationToken);
-        return booking;
+        await CancelBookingRequestByIdAsync(bookingId, userId, isAdmin, cancellationToken);
     }
 
-    public async Task<Booking> CancelBookingByIdAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
+    public async Task CancelBookingRequestByIdAsync(Guid bookingId, Guid userId, bool isAdmin, CancellationToken cancellationToken)
     {
         if (bookingId == Guid.Empty)
             throw new ArgumentException(nameof(bookingId));
@@ -55,10 +54,7 @@ internal class BookingService(IBookingRepository _bookingRepository, IBookingMes
         if (booking.UserId != userId && !isAdmin)
             throw new ForbiddenException($"Нет прав на отмену бронирования {bookingId}");
 
-        booking.Cancel();
-        await _bookingRepository.UpdateAsync(booking, cancellationToken);
         await _messageBrokerRepository.CancelRequestedAsync(booking.Id, booking.EventId, cancellationToken);
-        return booking;
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken)
@@ -96,6 +92,12 @@ internal class BookingService(IBookingRepository _bookingRepository, IBookingMes
         return await _bookingRepository.GetPendingIdsAsync(batch, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Booking>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken)
+    {
+        return await _bookingRepository.GetByEventIdAsync(eventId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Бронирования для события {eventId} не найдены");
+    }
+
     public async Task ConfirmBookingAsync(Guid bookingId, CancellationToken cancellationToken)
     {
         var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
@@ -116,9 +118,16 @@ internal class BookingService(IBookingRepository _bookingRepository, IBookingMes
         await _bookingRepository.UpdateAsync(booking, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Booking>> GetByEventIdAsync(Guid eventId, CancellationToken cancellationToken)
+    public async Task CancelBookingAsync(Guid bookingId, CancellationToken cancellationToken)
     {
-        return await _bookingRepository.GetByEventIdAsync(eventId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Бронирования для события {eventId} не найдены");
+        if (bookingId == Guid.Empty)
+            throw new ArgumentException(nameof(bookingId));
+
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Бронирование {bookingId} не найдено");
+
+        booking.Cancel();
+        await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        _logger.LogInformation("Бронь {bookingId} отменена", booking.Id);
     }
 }
