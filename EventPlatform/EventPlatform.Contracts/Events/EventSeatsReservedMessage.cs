@@ -2,5 +2,6 @@
 
 public class EventSeatsReservedMessage
 {
-    public Guid BookingId { get; set; }
+    public required Guid BookingId { get; set; }
+    public required DateTime ProcessedAt { get; set; }
 }

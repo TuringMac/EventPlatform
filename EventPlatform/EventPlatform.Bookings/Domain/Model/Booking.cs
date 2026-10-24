@@ -30,32 +30,32 @@ public class Booking : IEntity
         UserId = userId;
     }
 
-    public void Confirm()
+    public void Confirm(DateTime processedAt)
     {
         if (Status == BookingStatusEnum.Pending)
         {
             Status = BookingStatusEnum.Confirmed;
-            ProcessedAt = DateTime.UtcNow;
+            ProcessedAt = processedAt;
         }
         else
             throw new InvalidOperationException($"Перевести в статус {BookingStatusEnum.Confirmed} можно только из статуса {BookingStatusEnum.Pending}");
     }
-    public void Reject()
+    public void Reject(DateTime processedAt)
     {
         if (Status == BookingStatusEnum.Pending)
         {
             Status = BookingStatusEnum.Rejected;
-            ProcessedAt = DateTime.UtcNow;
+            ProcessedAt = processedAt;
         }
         else
             throw new InvalidOperationException($"Перевести в статус {BookingStatusEnum.Rejected} можно только из статуса {BookingStatusEnum.Pending}");
     }
-    public void Cancel()
+    public void Cancel(DateTime processedAt)
     {
         if (Status == BookingStatusEnum.Cancelled || Status == BookingStatusEnum.Rejected)
             throw new BookingAlreadyCancelledException($"Бронь уже отменена");
 
         Status = BookingStatusEnum.Cancelled;
-        ProcessedAt = DateTime.UtcNow;
+        ProcessedAt = processedAt;
     }
 }

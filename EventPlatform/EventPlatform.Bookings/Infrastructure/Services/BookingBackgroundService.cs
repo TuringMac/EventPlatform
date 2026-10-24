@@ -63,7 +63,7 @@ public class BookingBackgroundService(IOptions<BookingMessageBrokerOptions> opti
 
                         using var scope = scopeFactory.CreateScope();
                         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                        await bookingService.ConfirmBookingAsync(evt.BookingId, stoppingToken);
+                        await bookingService.ConfirmBookingAsync(evt.BookingId, evt.ProcessedAt, stoppingToken);
                     }
                     // Места не удалось зарезервировать, отклоняем бронь
                     else if (eventType == nameof(EventSeatsReservationFailedMessage))
@@ -72,7 +72,7 @@ public class BookingBackgroundService(IOptions<BookingMessageBrokerOptions> opti
                             ?? throw new InvalidOperationException("Не удалось десериализовать сообщение.");
                         using var scope = scopeFactory.CreateScope();
                         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                        await bookingService.RejectBookingAsync(evt.BookingId, stoppingToken);
+                        await bookingService.RejectBookingAsync(evt.BookingId, evt.ProcessedAt, stoppingToken);
                     }
                     // Места успешно освобождены, отменяем бронь
                     else if (eventType == nameof(EventSeatsReleasedMessage))
@@ -82,7 +82,7 @@ public class BookingBackgroundService(IOptions<BookingMessageBrokerOptions> opti
 
                         using var scope = scopeFactory.CreateScope();
                         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                        await bookingService.CancelBookingAsync(evt.BookingId, stoppingToken);
+                        await bookingService.CancelBookingAsync(evt.BookingId, evt.ProcessedAt, stoppingToken);
                     }
                     // Места не удалось освободить, оставляем бронь как есть
                     else if (eventType == nameof(EventSeatsReleaseFailedMessage))

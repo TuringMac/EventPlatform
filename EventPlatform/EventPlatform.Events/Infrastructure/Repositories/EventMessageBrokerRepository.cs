@@ -32,7 +32,11 @@ public class EventMessageBrokerRepository : IEventMessageBrokerRepository, IDisp
         var result = await _producer.ProduceAsync(Topics.Events, new Message<string, string>
         {
             Key = eventId.ToString(),
-            Value = JsonSerializer.Serialize(new EventSeatsReservationFailedMessage { BookingId = bookingId }),
+            Value = JsonSerializer.Serialize(new EventSeatsReservationFailedMessage
+            {
+                BookingId = bookingId,
+                ProcessedAt = DateTime.UtcNow
+            }),
             Headers = new Headers
             {
                 { _options.Value.MessageTypeHeaderName, Encoding.UTF8.GetBytes(nameof(EventSeatsReservationFailedMessage)) }
@@ -45,7 +49,11 @@ public class EventMessageBrokerRepository : IEventMessageBrokerRepository, IDisp
         var result = await _producer.ProduceAsync(Topics.Events, new Message<string, string>
         {
             Key = eventId.ToString(),
-            Value = JsonSerializer.Serialize(new EventSeatsReservedMessage { BookingId = bookingId }),
+            Value = JsonSerializer.Serialize(new EventSeatsReservedMessage
+            {
+                BookingId = bookingId,
+                ProcessedAt = DateTime.UtcNow
+            }),
             Headers = new Headers
             {
                 { _options.Value.MessageTypeHeaderName, Encoding.UTF8.GetBytes(nameof(EventSeatsReservedMessage)) }
@@ -58,7 +66,11 @@ public class EventMessageBrokerRepository : IEventMessageBrokerRepository, IDisp
         var result = await _producer.ProduceAsync(Topics.Events, new Message<string, string>
         {
             Key = eventId.ToString(),
-            Value = JsonSerializer.Serialize(new EventSeatsReleasedMessage { Id = eventId, BookingId = bookingId }),
+            Value = JsonSerializer.Serialize(new EventSeatsReleasedMessage
+            {
+                BookingId = bookingId,
+                ProcessedAt = DateTime.UtcNow
+            }),
             Headers = new Headers
             {
                 { _options.Value.MessageTypeHeaderName, Encoding.UTF8.GetBytes(nameof(EventSeatsReleasedMessage)) }
@@ -71,7 +83,11 @@ public class EventMessageBrokerRepository : IEventMessageBrokerRepository, IDisp
         var result = await _producer.ProduceAsync(Topics.Events, new Message<string, string>
         {
             Key = eventId.ToString(),
-            Value = JsonSerializer.Serialize(new EventSeatsReleaseFailedMessage { Id = eventId, BookingId = bookingId }),
+            Value = JsonSerializer.Serialize(new EventSeatsReleaseFailedMessage
+            {
+                BookingId = bookingId,
+                ProcessedAt = DateTime.UtcNow
+            }),
             Headers = new Headers
             {
                 { _options.Value.MessageTypeHeaderName, Encoding.UTF8.GetBytes(nameof(EventSeatsReleaseFailedMessage)) }
