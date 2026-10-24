@@ -1,8 +1,8 @@
 services:
   # ─────────────────────────── Инфраструктура обмена сообщениями ───────────────────────────
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: eventapi-zookeeper
+    image: confluentinc/cp-zookeeper:7.7.1
+    container_name: eventplatform-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -13,8 +13,8 @@ services:
       retries: 10
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: eventapi-kafka
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: eventplatform-kafka
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -88,6 +88,65 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # ─────────────────────────── Независимые сервисы со своей зоной ответственности ───────────────────────────
+  users:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: EventPlatform.Users
+    command: ["EventPlatform.Users.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=users-db;Port=5432;Database=users;Username=postgres;Password=postgres
+      MessageBroker__BootstrapServers: kafka:29092
+    ports:
+      - "5001:8080"
+    depends_on:
+      users-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  events:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: EventPlatform.Events
+    command: ["EventPlatform.Events.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=events-db;Port=5432;Database=events;Username=postgres;Password=postgres
+      MessageBroker__BootstrapServers: kafka:29092
+    ports:
+      - "5002:8080"
+    depends_on:
+      events-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  bookings:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: EventPlatform.Bookings
+    command: ["EventPlatform.Bookings.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=bookings-db;Port=5432;Database=bookings;Username=postgres;Password=postgres
+      MessageBroker__BootstrapServers: kafka:29092
+    ports:
+      - "5003:8080"
+    depends_on:
+      bookings-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
 volumes:
   users-db-data:
   events-db-data:
