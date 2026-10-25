@@ -15,7 +15,7 @@ public class BookingRepository(AppDbContext _context) : IBookingRepository
 
     public async Task<int> CountUserBookings(Guid userId, CancellationToken cancellationToken)
     {
-        return await _context.Bookings.CountAsync(b => b.UserId == userId && b.Status != BookingStatusEnum.Cancelled, cancellationToken);
+        return await _context.Bookings.CountAsync(b => b.UserId == userId && (b.Status == BookingStatusEnum.Pending || b.Status == BookingStatusEnum.Confirmed), cancellationToken);
     }
 
     public async Task<Guid> GetBookingIdByEventAndUserAsync(Guid eventId, Guid userId, CancellationToken cancellationToken)
