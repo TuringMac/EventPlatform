@@ -1,12 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using EventPlatform.Domain.Model;
-using EventPlatform.Infrastructure.Options;
-using EventPlatform.Infrastructure.Repositories;
+using EventPlatform.Users.Domain.Model;
+using EventPlatform.Common.Infrastructure.Options;
+using EventPlatform.Users.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
+using EventPlatform.Contracts;
 
-namespace EventPlatform.Tests;
+namespace EventPlatform.Users.Tests;
 
 public class TokenGeneratorTests
 {
@@ -47,8 +48,9 @@ public class TokenGeneratorTests
     {
         // Arrange
         const int keyLengthBytes = 32;
+        const int shortKeyLengthBytes = keyLengthBytes - 1;
         var user = new User("alice", "hash", UserRoleEnum.User);
-        var jwtOptions = Options.Create(new JwtOptions { Key = new string('x', keyLengthBytes - 1) });
+        var jwtOptions = Options.Create(new JwtOptions { Key = new string('x', shortKeyLengthBytes) });
         var generator = new TokenGenerator(jwtOptions);
 
         // Act

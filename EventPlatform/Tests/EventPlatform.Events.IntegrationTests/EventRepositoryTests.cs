@@ -1,9 +1,9 @@
-﻿using EventPlatform.Domain.Model;
-using EventPlatform.Infrastructure.Repositories;
+﻿using EventPlatform.Events.Domain.Model;
+using EventPlatform.Events.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventPlatform.IntegrationTests;
+namespace EventPlatform.Events.IntegrationTests;
 
 [Collection("PostgreSql")]
 public class EventRepositoryTests(PostgreSqlFixture fixture)
@@ -34,33 +34,6 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
     }
 
     [Fact]
-    public async Task GetByIdAsync_ReturnsEventWithBookings()
-    {
-        // Arrange
-        await fixture.ResetDatabaseAsync();
-        var evt = PostgreSqlFixture.NewEvent();
-        await using (var arrangeContext = fixture.CreateContext())
-        {
-            arrangeContext.Events.Add(evt);
-            var user = new User("owner", "hash", UserRoleEnum.User);
-            arrangeContext.Users.Add(user);
-            arrangeContext.Bookings.Add(new Booking(evt.Id, user.Id));
-            await arrangeContext.SaveChangesAsync(TestContext.Current.CancellationToken);
-        }
-
-        await using var context = fixture.CreateContext();
-        var repository = new EventRepository(context);
-
-        // Act
-        var loaded = await repository.GetByIdAsync(evt.Id, TestContext.Current.CancellationToken);
-
-        // Assert
-        loaded.Should().NotBeNull();
-        loaded!.Id.Should().Be(evt.Id);
-        loaded.Bookings.Should().ContainSingle(b => b.EventId == evt.Id);
-    }
-
-    [Fact]
     public async Task GetByIdAsync_WhenMissing_ReturnsNull()
     {
         // Arrange
@@ -79,6 +52,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
     public async Task UpdateAsync_PersistsFieldChanges()
     {
         // Arrange
+        var endOffsetHours = 3;
         await fixture.ResetDatabaseAsync();
         var evt = PostgreSqlFixture.NewEvent();
         await using (var arrangeContext = fixture.CreateContext())
@@ -92,7 +66,7 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         var tracked = await repository.GetByIdAsync(evt.Id, TestContext.Current.CancellationToken);
         tracked!.Title = "Updated title";
         tracked.Description = "Updated description";
-        var newEnd = tracked.EndAt.AddHours(3);
+        var newEnd = tracked.EndAt.AddHours(endOffsetHours);
         tracked.EndAt = newEnd;
 
         // Act
@@ -110,8 +84,10 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
     public async Task UpdateAsync_PersistsAvailableSeats()
     {
         // Arrange
+        var totalSeats = 5;
+        var reservedSeats = 1;
         await fixture.ResetDatabaseAsync();
-        var evt = PostgreSqlFixture.NewEvent(seats: 5);
+        var evt = PostgreSqlFixture.NewEvent(seats: totalSeats);
         await using (var arrangeContext = fixture.CreateContext())
         {
             arrangeContext.Events.Add(evt);
@@ -129,8 +105,8 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         // Assert
         await using var verify = fixture.CreateContext();
         var saved = await verify.Events.SingleAsync(e => e.Id == evt.Id, TestContext.Current.CancellationToken);
-        saved.AvailableSeats.Should().Be(4);
-        saved.TotalSeats.Should().Be(5);
+        saved.AvailableSeats.Should().Be(totalSeats - reservedSeats);
+        saved.TotalSeats.Should().Be(totalSeats);
     }
 
     [Fact]
@@ -175,6 +151,9 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
     public async Task GetPagedAsync_ReturnsRequestedPage()
     {
         // Arrange
+        var page = 1;
+        var pageSize = 2;
+        var expectedTotal = 3;
         await fixture.ResetDatabaseAsync();
         await using (var arrangeContext = fixture.CreateContext())
         {
@@ -190,19 +169,22 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Act
         var (events, currentPage, pageItems, totalAmount) =
-            await repository.GetPagedAsync(null, null, null, page: 1, pageSize: 2, TestContext.Current.CancellationToken);
+            await repository.GetPagedAsync(null, null, null, page, pageSize, TestContext.Current.CancellationToken);
 
         // Assert
-        currentPage.Should().Be(1);
-        pageItems.Should().Be(2);
-        totalAmount.Should().Be(3);
-        events.Should().HaveCount(2);
+        currentPage.Should().Be(page);
+        pageItems.Should().Be(pageSize);
+        totalAmount.Should().Be(expectedTotal);
+        events.Should().HaveCount(pageSize);
     }
 
     [Fact]
     public async Task GetPagedAsync_FiltersByTitle()
     {
         // Arrange
+        var page = 1;
+        var pageSize = 10;
+        var expectedCount = 1;
         await fixture.ResetDatabaseAsync();
         await using (var arrangeContext = fixture.CreateContext())
         {
@@ -217,11 +199,11 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
 
         // Act
         var (events, _, pageItems, totalAmount) =
-            await repository.GetPagedAsync("concert", null, null, page: 1, pageSize: 10, TestContext.Current.CancellationToken);
+            await repository.GetPagedAsync("concert", null, null, page, pageSize, TestContext.Current.CancellationToken);
 
         // Assert
-        totalAmount.Should().Be(1);
-        pageItems.Should().Be(1);
+        totalAmount.Should().Be(expectedCount);
+        pageItems.Should().Be(expectedCount);
         events.Should().ContainSingle(e => e.Title == "Alpha Concert");
     }
 
@@ -229,11 +211,22 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
     public async Task GetPagedAsync_FiltersByDateRange()
     {
         // Arrange
+        var earlyStartOffsetHours = -8;
+        var earlyEndOffsetHours = -2;
+        var midStartOffsetHours = -1;
+        var midEndOffsetHours = 1;
+        var lateStartOffsetHours = 2;
+        var lateEndOffsetHours = 8;
+        var fromOffsetMinutes = -15;
+        var toOffsetMinutes = 15;
+        var page = 1;
+        var pageSize = 10;
+        var expectedCount = 1;
         await fixture.ResetDatabaseAsync();
         var now = DateTime.UtcNow;
-        var early = PostgreSqlFixture.NewEvent("Early", startAt: now.AddHours(-8), endAt: now.AddHours(-2));
-        var mid = PostgreSqlFixture.NewEvent("Mid", startAt: now.AddHours(-1), endAt: now.AddHours(1));
-        var late = PostgreSqlFixture.NewEvent("Late", startAt: now.AddHours(2), endAt: now.AddHours(8));
+        var early = PostgreSqlFixture.NewEvent("Early", startAt: now.AddHours(earlyStartOffsetHours), endAt: now.AddHours(earlyEndOffsetHours));
+        var mid = PostgreSqlFixture.NewEvent("Mid", startAt: now.AddHours(midStartOffsetHours), endAt: now.AddHours(midEndOffsetHours));
+        var late = PostgreSqlFixture.NewEvent("Late", startAt: now.AddHours(lateStartOffsetHours), endAt: now.AddHours(lateEndOffsetHours));
 
         await using (var arrangeContext = fixture.CreateContext())
         {
@@ -247,14 +240,14 @@ public class EventRepositoryTests(PostgreSqlFixture fixture)
         // Act
         var (events, _, _, totalAmount) = await repository.GetPagedAsync(
             title: null,
-            from: now.AddMinutes(-15),
-            to: now.AddMinutes(15),
-            page: 1,
-            pageSize: 10,
+            from: now.AddMinutes(fromOffsetMinutes),
+            to: now.AddMinutes(toOffsetMinutes),
+            page: page,
+            pageSize: pageSize,
             cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        totalAmount.Should().Be(1);
+        totalAmount.Should().Be(expectedCount);
         events.Should().ContainSingle(e => e.Id == mid.Id);
     }
 }

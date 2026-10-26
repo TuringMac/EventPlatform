@@ -1,13 +1,14 @@
-using EventPlatform.Application;
-using EventPlatform.Application.DTO;
-using EventPlatform.Application.Interfaces;
-using EventPlatform.Domain.Exceptions;
-using EventPlatform.Domain.Model;
+using EventPlatform.Contracts;
+using EventPlatform.Users.Application;
+using EventPlatform.Users.Application.DTO;
+using EventPlatform.Users.Application.Interfaces;
+using EventPlatform.Users.Domain.Exceptions;
+using EventPlatform.Users.Domain.Model;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
-namespace EventPlatform.Tests;
+namespace EventPlatform.Users.Tests;
 
 public class UserServiceTests
 {

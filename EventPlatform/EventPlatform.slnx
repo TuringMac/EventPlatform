@@ -26,12 +26,12 @@
     <File Path="testEnvironments.json" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="EventPlatform.IntegrationTests/EventPlatform.IntegrationTests.csproj" Id="dd0f28da-7e99-4316-9f81-9175324aac43">
-      <Build Project="false" />
-    </Project>
-    <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" Id="4de92b6d-5de8-4b23-86d2-b6aaf24a91d3">
-      <Build Project="false" />
-    </Project>
+    <Project Path="Tests/EventPlatform.Bookings.IntegrationTests/EventPlatform.Bookings.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Bookings.Tests/EventPlatform.Bookings.Tests.csproj" />
+    <Project Path="Tests/EventPlatform.Events.IntegrationTests/EventPlatform.Events.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Events.Tests/EventPlatform.Events.Tests.csproj" />
+    <Project Path="Tests/EventPlatform.Users.IntegrationTests/EventPlatform.Users.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Users.Tests/EventPlatform.Users.Tests.csproj" />
   </Folder>
   <Folder Name="/Users/">
     <Project Path="Users/EventPlatform.Users.Api/EventPlatform.Users.Api.csproj" />

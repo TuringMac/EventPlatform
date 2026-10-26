@@ -1,9 +1,10 @@
-using EventPlatform.Domain.Model;
-using EventPlatform.Infrastructure.Repositories;
+using EventPlatform.Contracts;
+using EventPlatform.Users.Domain.Model;
+using EventPlatform.Users.Infrastructure.Repositories;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
-namespace EventPlatform.IntegrationTests;
+namespace EventPlatform.Users.IntegrationTests;
 
 [Collection("PostgreSql")]
 public class UserRepositoryTests(PostgreSqlFixture fixture)
