@@ -195,8 +195,8 @@ Status (0 - Pending, 1 - Confirmed, 2 - Rejected, 3 - Cancelled)
 
 ### Управление миграциями
 
-Создание миграций `dotnet ef migrations add user_scheme --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
-Ручное выполнение миграций `dotnet ef database update --project .\EventPlatform\EventPlatform.Infrastructure --startup-project .\EventPlatform\EventPlatform.Api`  
+Создание миграций `dotnet ef migrations add user_scheme --project .\Users\EventPlatform.Users.Infrastructure --startup-project .\Users\EventPlatform.Users.Api`  
+Ручное выполнение миграций `dotnet ef database update --project .\Users\EventPlatform.Users.Infrastructure --startup-project .\Users\EventPlatform.Users.Api`  
 
 ## Структура проекта
 

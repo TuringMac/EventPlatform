@@ -95,8 +95,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        SERVICE: EventPlatform.Users
-    command: ["EventPlatform.Users.dll"]
+        SERVICE: Users
+    command: ["EventPlatform.Users.Api.dll"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=users-db;Port=5432;Database=users;Username=postgres;Password=postgres
@@ -117,8 +117,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        SERVICE: EventPlatform.Events
-    command: ["EventPlatform.Events.dll"]
+        SERVICE: Events
+    command: ["EventPlatform.Events.Api.dll"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=events-db;Port=5432;Database=events;Username=postgres;Password=postgres
@@ -139,8 +139,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        SERVICE: EventPlatform.Bookings
-    command: ["EventPlatform.Bookings.dll"]
+        SERVICE: Bookings
+    command: ["EventPlatform.Bookings.Api.dll"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=bookings-db;Port=5432;Database=bookings;Username=postgres;Password=postgres

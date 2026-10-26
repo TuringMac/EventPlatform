@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	  <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
+	  <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.1" />
+	  <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\EventPlatform.Common.Infrastructure\EventPlatform.Common.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Common\EventPlatform.Common.Api\EventPlatform.Common.Api.csproj" />
+    <ProjectReference Include="..\..\EventPlatform.Contracts\EventPlatform.Contracts.csproj" />
+    <ProjectReference Include="..\EventPlatform.Events.Application\EventPlatform.Events.Application.csproj" />
+    <ProjectReference Include="..\EventPlatform.Events.Infrastructure\EventPlatform.Events.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

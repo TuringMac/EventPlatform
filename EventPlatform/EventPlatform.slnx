@@ -1,4 +1,22 @@
 <Solution>
+  <Folder Name="/Bookings/">
+    <Project Path="Bookings/EventPlatform.Bookings.Api/EventPlatform.Bookings.Api.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Application/EventPlatform.Bookings.Application.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Domain/EventPlatform.Bookings.Domain.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Infrastructure/EventPlatform.Bookings.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Common/">
+    <Project Path="Common/EventPlatform.Common.Api/EventPlatform.Common.Api.csproj" />
+    <Project Path="Common/EventPlatform.Common.Application/EventPlatform.Common.Application.csproj" />
+    <Project Path="Common/EventPlatform.Common.Domain/EventPlatform.Common.Domain.csproj" />
+    <Project Path="Common/EventPlatform.Common.Infrastructure/EventPlatform.Common.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Events/">
+    <Project Path="Events/EventPlatform.Events.Api/EventPlatform.Events.Api.csproj" />
+    <Project Path="Events/EventPlatform.Events.Application/EventPlatform.Events.Application.csproj" />
+    <Project Path="Events/EventPlatform.Events.Domain/EventPlatform.Events.Domain.csproj" />
+    <Project Path="Events/EventPlatform.Events.Infrastructure/EventPlatform.Events.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../.dockerignore" />
     <File Path="../docker-compose.yml" />
@@ -15,9 +33,11 @@
       <Build Project="false" />
     </Project>
   </Folder>
-  <Project Path="EventPlatform.Bookings/EventPlatform.Bookings.csproj" Id="5d910e34-7a13-4087-9b6a-3c4648201989" />
-  <Project Path="EventPlatform.Common/EventPlatform.Common.csproj" Id="75a197f0-ff95-423a-83ea-62a44fdf0e5a" />
+  <Folder Name="/Users/">
+    <Project Path="Users/EventPlatform.Users.Api/EventPlatform.Users.Api.csproj" />
+    <Project Path="Users/EventPlatform.Users.Application/EventPlatform.Users.Application.csproj" />
+    <Project Path="Users/EventPlatform.Users.Domain/EventPlatform.Users.Domain.csproj" />
+    <Project Path="Users/EventPlatform.Users.Infrastructure/EventPlatform.Users.Infrastructure.csproj" />
+  </Folder>
   <Project Path="EventPlatform.Contracts/EventPlatform.Contracts.csproj" Id="8f68f20e-7803-4044-9fae-604c18486ad8" />
-  <Project Path="EventPlatform.Events/EventPlatform.Events.csproj" Id="8b0ad0f7-463a-41e3-8785-ba69e2e35947" />
-  <Project Path="EventPlatform.Users/EventPlatform.Users.csproj" Id="c23e0c02-6f9c-40e8-8383-cd3c0a7b3685" />
 </Solution>
