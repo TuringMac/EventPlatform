@@ -29,6 +29,20 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         };
     }
 
+    [AllowAnonymous]
+    [HttpGet("top")]
+    public async Task<ActionResult<ApiResult<IEnumerable<Event>>>> GetTop10Events(CancellationToken cancellationToken)
+    {
+        var events = await _eventService.GetTop10EventsAsync(cancellationToken);
+        return new ApiResult<IEnumerable<Event>>
+        {
+            Data = events,
+            Success = true,
+            StatusCode = HttpStatusCode.OK,
+            Message = "Получаем топ 10 мероприятий из коллекции"
+        };
+    }
+
     /// <summary>
     /// Получить мероприятие
     /// </summary>

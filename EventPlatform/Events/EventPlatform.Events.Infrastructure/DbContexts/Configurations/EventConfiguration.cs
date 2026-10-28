@@ -28,8 +28,7 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
             .IsRequired();
 
         builder.Property(e => e.AvailableSeats)
-            .HasField("_AvailableSeats")
-            .IsConcurrencyToken();
+            .HasField("_AvailableSeats");
 
         builder.HasIndex(e => e.Id)
             .IsUnique();

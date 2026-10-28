@@ -14,4 +14,5 @@ public interface IEventService
 
     Task<bool> ReserveSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
     Task<bool> ReleaseSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken);
+    Task<IEnumerable<Event>> GetTop10EventsAsync(CancellationToken cancellationToken);
 }

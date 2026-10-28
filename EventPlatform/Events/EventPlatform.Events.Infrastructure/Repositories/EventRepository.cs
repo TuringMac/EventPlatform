@@ -1,7 +1,8 @@
 ﻿using EventPlatform.Events.Application.Interfaces;
-using EventPlatform.Events.Infrastructure.DbContexts;
 using EventPlatform.Events.Domain.Model;
+using EventPlatform.Events.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace EventPlatform.Events.Infrastructure.Repositories;
 
@@ -52,6 +53,17 @@ public class EventRepository(AppDbContext _context) : IEventRepository
             .ToListAsync(cancellationToken);
 
         return (events, page, events.Count, totalAmount);
+    }
+
+    public async Task<IEnumerable<Event>> GetTop10EventsAsync(Expression<Func<Event, int>> keySelector, CancellationToken cancellationToken)
+    {
+        return await _context.Events
+            .AsNoTracking()
+            .Where(e => e.EndAt >= DateTime.UtcNow) // Актуальные на данный момент
+            .OrderByDescending(keySelector) // Самые продаваемые
+            .ThenBy(e => e.StartAt) // Самые старые
+            .Take(10)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(Guid id, Event evt, CancellationToken cancellationToken)

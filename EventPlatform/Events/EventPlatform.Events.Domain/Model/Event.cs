@@ -28,6 +28,7 @@ public class Event : IEntity
         }
     }
     int _AvailableSeats;
+    [JsonInclude]
     public int AvailableSeats
     {
         get => _AvailableSeats;

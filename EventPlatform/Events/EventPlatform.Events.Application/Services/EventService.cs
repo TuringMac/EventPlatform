@@ -105,13 +105,13 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
             await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
         else if (evt.AvailableSeats <= 0 || !evt.TryReserveSeats())
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мест нет", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мест нет", bookingId);
             await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
@@ -128,7 +128,7 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
             await _messageBrokerRepository.SeatsReleaseFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
@@ -137,5 +137,11 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         await _messageBrokerRepository.SeatsReleasedAsync(eventId, bookingId, cancellationToken);
         _logger.LogInformation("Места брони {bookingId} освобождены", bookingId);
         return true;
+    }
+
+    public async Task<IEnumerable<Event>> GetTop10EventsAsync(CancellationToken cancellationToken)
+    {
+        var top10 = await _eventRepository.GetTop10EventsAsync(e=>(e.TotalSeats - e.AvailableSeats) / e.TotalSeats, cancellationToken);
+        return top10;
     }
 }
