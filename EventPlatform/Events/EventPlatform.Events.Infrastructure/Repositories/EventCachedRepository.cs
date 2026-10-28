@@ -74,20 +74,26 @@ public class EventCachedRepository(IEventRepository eventRepository, IConnection
         var db = connectionMultiplexer.GetDatabase();
         try
         {
-            await db.PingAsync();
             var cachedTop10 = await db.StringGetAsync(key);
             if (cachedTop10.HasValue) // Hit
                 return JsonSerializer.Deserialize<IEnumerable<Event>>(cachedTop10.ToString())!;
         }
-        catch (RedisConnectionException ex)
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException)
         {
-            logger.LogError(ex, "Ошибка чтения из кеша для ТОП10 Мероприятий KEY {top10Key}", key);
+            logger.LogWarning(ex, "Ошибка чтения из кеша для ТОП10 Мероприятий KEY {top10Key}", key);
         }
 
         // Miss
         var top10Events = await eventRepository.GetTop10EventsAsync(keySelector, cancellationToken);
-        string json = JsonSerializer.Serialize(top10Events);
-        await db.StringSetAsync(key, json, TimeSpan.FromMinutes(options.Value.Top10TTL)); // С TTL
+        try
+        {
+            string json = JsonSerializer.Serialize(top10Events);
+            await db.StringSetAsync(key, json, TimeSpan.FromMinutes(options.Value.Top10TTL)); // С TTL
+        }
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException)
+        {
+            logger.LogWarning(ex, "Ошибка записи в кеш для ТОП10 Мероприятий KEY {top10Key}", key);
+        }
 
         return top10Events;
     }
@@ -103,13 +109,12 @@ public class EventCachedRepository(IEventRepository eventRepository, IConnection
         try
         {
             var db = connectionMultiplexer.GetDatabase();
-            await db.PingAsync();
             string json = JsonSerializer.Serialize(evt);
             await db.StringSetAsync(key, json, TimeSpan.FromMinutes(options.Value.RegularTTL));
         }
-        catch (RedisConnectionException ex)
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException)
         {
-            logger.LogError(ex, "Ошибка записи в кеш для Мероприятия KEY {eventIdKey}", key);
+            logger.LogWarning(ex, "Ошибка записи в кеш для Мероприятия KEY {eventIdKey}", key);
         }
     }
     private async Task<Event?> GetCachedEventByIdAsync(Guid eventId, CancellationToken cancellationToken)
@@ -118,16 +123,15 @@ public class EventCachedRepository(IEventRepository eventRepository, IConnection
         try
         {
             var db = connectionMultiplexer.GetDatabase();
-            await db.PingAsync();
             var cached = await db.StringGetAsync(key);
             if (cached.HasValue) // Hit
             {
                 return JsonSerializer.Deserialize<Event>(cached.ToString());
             }
         }
-        catch (RedisConnectionException ex)
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException)
         {
-            logger.LogError(ex, "Ошибка чтения из кеша для Мероприятия KEY {eventIdKey}", key);
+            logger.LogWarning(ex, "Ошибка чтения из кеша для Мероприятия KEY {eventIdKey}", key);
         }
         return null;
     }
@@ -144,12 +148,11 @@ public class EventCachedRepository(IEventRepository eventRepository, IConnection
         try
         {
             var db = connectionMultiplexer.GetDatabase();
-            await db.PingAsync();
             await db.KeyDeleteAsync(key);
         }
-        catch (RedisConnectionException ex)
+        catch (Exception ex) when (ex is RedisConnectionException or RedisTimeoutException)
         {
-            logger.LogError(ex, "Ошибка инвалидации кеша для Мероприятия KEY {eventIdKey}", key);
+            logger.LogWarning(ex, "Ошибка инвалидации кеша для Мероприятия KEY {eventIdKey}", key);
         }
     }
 }

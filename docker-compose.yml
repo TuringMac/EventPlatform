@@ -139,6 +139,7 @@ services:
       JWT__Audience: "EventPlatform.Api"
       JWT__Key: "long-hair-horse-eats-apples-under-the-tree"
       Redis__Host: redis
+      Cache__Top10TTL: 2
     ports:
       - "5002:8080"
     depends_on:

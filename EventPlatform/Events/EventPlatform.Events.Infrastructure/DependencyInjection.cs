@@ -23,18 +23,27 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
-        services.AddScoped<IEventRepository, EventRepository>();
         services.AddSingleton<IEventMessageBrokerRepository, EventMessageBrokerRepository>();
 
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        services.AddSingleton<IConnectionMultiplexer>(provider =>
         {
-            var redisConfig = configuration.GetSection("Redis");
+            var redis = provider.GetRequiredService<IOptions<RedisOptions>>().Value;
+
             var configurationOptions = new ConfigurationOptions
             {
-                EndPoints = { $"{redisConfig["Host"]}:{redisConfig["Port"]}" }
+                AbortOnConnectFail = false, // Не выкидывает ошибку
+                BacklogPolicy = BacklogPolicy.FailFast, // не копит команды
+                ConnectTimeout = 1000,
+                ConnectRetry = 0,
+                AsyncTimeout = 500,
+                SyncTimeout = 500
             };
+
+            configurationOptions.EndPoints.Add(redis.Host, redis.Port);
+
             return ConnectionMultiplexer.Connect(configurationOptions);
         });
+
         services.AddScoped<EventRepository>();
 
         // Исключаем циклическую зависимость, используя фабрику для создания EventCachedRepository
