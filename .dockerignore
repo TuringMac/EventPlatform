@@ -1,0 +1,11 @@
+.git
+.vs
+**/bin
+**/obj
+**/.vs
+EventPlatform/EventPlatform.Tests
+EventPlatform/EventPlatform.IntegrationTests
+**/TestResults
+.env
+*.user
+*.suo

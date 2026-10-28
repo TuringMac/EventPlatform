@@ -1,15 +1,43 @@
 <Solution>
+  <Folder Name="/Bookings/">
+    <Project Path="Bookings/EventPlatform.Bookings.Api/EventPlatform.Bookings.Api.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Application/EventPlatform.Bookings.Application.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Domain/EventPlatform.Bookings.Domain.csproj" />
+    <Project Path="Bookings/EventPlatform.Bookings.Infrastructure/EventPlatform.Bookings.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Common/">
+    <Project Path="Common/EventPlatform.Common.Api/EventPlatform.Common.Api.csproj" />
+    <Project Path="Common/EventPlatform.Common.Application/EventPlatform.Common.Application.csproj" />
+    <Project Path="Common/EventPlatform.Common.Domain/EventPlatform.Common.Domain.csproj" />
+    <Project Path="Common/EventPlatform.Common.Infrastructure/EventPlatform.Common.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Events/">
+    <Project Path="Events/EventPlatform.Events.Api/EventPlatform.Events.Api.csproj" />
+    <Project Path="Events/EventPlatform.Events.Application/EventPlatform.Events.Application.csproj" />
+    <Project Path="Events/EventPlatform.Events.Domain/EventPlatform.Events.Domain.csproj" />
+    <Project Path="Events/EventPlatform.Events.Infrastructure/EventPlatform.Events.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="../.dockerignore" />
     <File Path="../docker-compose.yml" />
+    <File Path="../Dockerfile" />
     <File Path="../README.md" />
+    <File Path="Directory.Build.props" />
     <File Path="testEnvironments.json" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="EventPlatform.IntegrationTests/EventPlatform.IntegrationTests.csproj" Id="dd0f28da-7e99-4316-9f81-9175324aac43" />
-    <Project Path="EventPlatform.Tests/EventPlatform.Tests.csproj" Id="4de92b6d-5de8-4b23-86d2-b6aaf24a91d3" />
+    <Project Path="Tests/EventPlatform.Bookings.IntegrationTests/EventPlatform.Bookings.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Bookings.Tests/EventPlatform.Bookings.Tests.csproj" />
+    <Project Path="Tests/EventPlatform.Events.IntegrationTests/EventPlatform.Events.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Events.Tests/EventPlatform.Events.Tests.csproj" />
+    <Project Path="Tests/EventPlatform.Users.IntegrationTests/EventPlatform.Users.IntegrationTests.csproj" />
+    <Project Path="Tests/EventPlatform.Users.Tests/EventPlatform.Users.Tests.csproj" />
   </Folder>
-  <Project Path="EventPlatform.Api/EventPlatform.Api.csproj" />
-  <Project Path="EventPlatform.Application/EventPlatform.Application.csproj" Id="fba56093-7284-4f04-9ec2-75e1d72aa0b5" />
-  <Project Path="EventPlatform.Domain/EventPlatform.Domain.csproj" Id="34789b12-900f-4084-bed1-be0becc583ff" />
-  <Project Path="EventPlatform.Infrastructure/EventPlatform.Infrastructure.csproj" Id="e00ef635-b47c-4077-a48d-0e154031fc91" />
+  <Folder Name="/Users/">
+    <Project Path="Users/EventPlatform.Users.Api/EventPlatform.Users.Api.csproj" />
+    <Project Path="Users/EventPlatform.Users.Application/EventPlatform.Users.Application.csproj" />
+    <Project Path="Users/EventPlatform.Users.Domain/EventPlatform.Users.Domain.csproj" />
+    <Project Path="Users/EventPlatform.Users.Infrastructure/EventPlatform.Users.Infrastructure.csproj" />
+  </Folder>
+  <Project Path="EventPlatform.Contracts/EventPlatform.Contracts.csproj" Id="8f68f20e-7803-4044-9fae-604c18486ad8" />
 </Solution>
