@@ -1,10 +1,10 @@
 using EventPlatform.Common.Infrastructure.Options;
-using EventPlatform.Events;
 using EventPlatform.Events.Api;
 using EventPlatform.Events.Application;
 using EventPlatform.Events.Application.Options;
 using EventPlatform.Events.Infrastructure;
 using EventPlatform.Events.Infrastructure.DbContexts;
+using EventPlatform.Events.Infrastructure.Options;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
@@ -22,6 +22,16 @@ builder.Services.AddOptions<EventMessageBrokerOptions>()
             .Validate(options => !string.IsNullOrWhiteSpace(options.BootstrapServers), "BootstrapServers не настроен.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.MessageTypeHeaderName), "MessageTypeHeaderName не настроен.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.ConsumerGroup), "ConsumerGroup не настроен.")
+            .ValidateOnStart();
+builder.Services.AddOptions<CacheOptions>()
+            .Bind(builder.Configuration.GetSection(CacheOptions.SectionName))
+            .Validate(options => options.Top10TTL > 0, "Top10TTL должно быть положительным.")
+            .Validate(options => options.RegularTTL > 0, "RegularTTL должно быть положительным.")
+            .ValidateOnStart();
+builder.Services.AddOptions<RedisOptions>()
+            .Bind(builder.Configuration.GetSection(RedisOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Host), "Host не настроен.")
+            .Validate(options => options.Port > 0, "Port должно быть положительным.")
             .ValidateOnStart();
 
 // Add services to the container.

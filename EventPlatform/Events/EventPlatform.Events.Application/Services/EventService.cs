@@ -58,11 +58,19 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         return evt;
     }
 
+    public async Task<Event> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        ValidateGuid(id);
+        var evt = await _eventRepository.GetForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
+        return evt;
+    }
+
     public async Task UpdateAsync(Guid id, EventRequest obj, CancellationToken cancellationToken)
     {
         if (id != obj.Id)
             throw new ArgumentException("Id в URL не совпадает с Id в теле запроса.", nameof(obj.Id));
-        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
         evt.UpdateDetails(obj.Title,
             obj.Description ?? string.Empty,
@@ -101,17 +109,17 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         ValidateGuid(eventId);
         ValidateGuid(bookingId);
 
-        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
             await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
         else if (evt.AvailableSeats <= 0 || !evt.TryReserveSeats())
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мест нет", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мест нет", bookingId);
             await _messageBrokerRepository.SeatsReservationFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
@@ -124,11 +132,11 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
 
     public async Task<bool> ReleaseSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken)
     {
-        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {
-            _logger.LogInformation("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
+            _logger.LogWarning("Бронь {bookingId} отклонена, мероприятие закончилось", bookingId);
             await _messageBrokerRepository.SeatsReleaseFailedAsync(eventId, bookingId, cancellationToken);
             return false;
         }
@@ -137,5 +145,11 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         await _messageBrokerRepository.SeatsReleasedAsync(eventId, bookingId, cancellationToken);
         _logger.LogInformation("Места брони {bookingId} освобождены", bookingId);
         return true;
+    }
+
+    public async Task<IEnumerable<Event>> GetTop10EventsAsync(CancellationToken cancellationToken)
+    {
+        var top10 = await _eventRepository.GetTop10EventsAsync(e=>(e.TotalSeats - e.AvailableSeats) / e.TotalSeats, cancellationToken);
+        return top10;
     }
 }

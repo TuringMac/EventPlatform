@@ -1,7 +1,8 @@
 ﻿using EventPlatform.Events.Application.Interfaces;
-using EventPlatform.Events.Infrastructure.DbContexts;
 using EventPlatform.Events.Domain.Model;
+using EventPlatform.Events.Infrastructure.DbContexts;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace EventPlatform.Events.Infrastructure.Repositories;
 
@@ -29,6 +30,12 @@ public class EventRepository(AppDbContext _context) : IEventRepository
         return await _context.Events.FindAsync([id], cancellationToken);
     }
 
+    public async Task<Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        // TODO: Использовать ReloadAsync для получения самых свежих данных
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
     public async Task<(IEnumerable<Event> events, int currentPage, int pageItems, int totalAmount)> GetPagedAsync(
         string? title,
         DateTime? from,
@@ -52,6 +59,17 @@ public class EventRepository(AppDbContext _context) : IEventRepository
             .ToListAsync(cancellationToken);
 
         return (events, page, events.Count, totalAmount);
+    }
+
+    public async Task<IEnumerable<Event>> GetTop10EventsAsync(Expression<Func<Event, int>> keySelector, CancellationToken cancellationToken)
+    {
+        return await _context.Events
+            .AsNoTracking()
+            .Where(e => e.EndAt >= DateTime.UtcNow) // Актуальные на данный момент
+            .OrderByDescending(keySelector) // Самые продаваемые
+            .ThenBy(e => e.StartAt) // Самые старые
+            .Take(10)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(Guid id, Event evt, CancellationToken cancellationToken)

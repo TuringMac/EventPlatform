@@ -1,5 +1,6 @@
 ﻿using EventPlatform.Common.Application.Interfaces;
 using EventPlatform.Events.Domain.Model;
+using System.Linq.Expressions;
 
 namespace EventPlatform.Events.Application.Interfaces;
 
@@ -12,4 +13,9 @@ public interface IEventRepository : IRepositoryCrud<Event>
         int page,
         int pageSize,
         CancellationToken cancellationToken);
+    /// <summary>
+    /// Метод-контракт. Все реализации выполняют bypass
+    /// </summary>
+    Task<Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
+    Task<IEnumerable<Event>> GetTop10EventsAsync(Expression<Func<Event, int>> keySelector, CancellationToken cancellationToken);
 }

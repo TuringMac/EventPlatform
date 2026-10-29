@@ -29,6 +29,20 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         };
     }
 
+    [AllowAnonymous]
+    [HttpGet("top")]
+    public async Task<ActionResult<ApiResult<IEnumerable<Event>>>> GetTop10Events(CancellationToken cancellationToken)
+    {
+        var events = await _eventService.GetTop10EventsAsync(cancellationToken);
+        return new ApiResult<IEnumerable<Event>>
+        {
+            Data = events,
+            Success = true,
+            StatusCode = HttpStatusCode.OK,
+            Message = "Получаем топ 10 мероприятий из коллекции"
+        };
+    }
+
     /// <summary>
     /// Получить мероприятие
     /// </summary>
@@ -48,6 +62,29 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         return new ApiResult<Event>
         {
             Data = await _eventService.GetByIdAsync(id, cancellationToken),
+            Success = true,
+            StatusCode = HttpStatusCode.OK,
+            Message = "Получаем мероприятие по индексу из коллекции"
+        };
+    }
+
+    /// <summary>
+    /// Получение мероприятия для обновления с чистыми данными из БД для целей администрирования.
+    /// </summary>
+    /// <param name="id">Идентификатор мероприятия</param>
+    /// <returns></returns>
+    /// <response code="200">Мероприятие найдено</response>
+    /// <response code="404">Мероприятия нет в базе</response>
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [HttpGet("{id:guid}/update")]
+    public async Task<ActionResult<ApiBaseResult>> GetForUpdate(Guid id, CancellationToken cancellationToken)
+    {
+        return new ApiResult<Event>
+        {
+            Data = await _eventService.GetForUpdateAsync(id, cancellationToken),
             Success = true,
             StatusCode = HttpStatusCode.OK,
             Message = "Получаем мероприятие по индексу из коллекции"
