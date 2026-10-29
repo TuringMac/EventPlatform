@@ -161,7 +161,7 @@ public class EventServiceCachingTests : IDisposable
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ChangeSeats_UpdatesCachedAvailableSeats(bool release)
+    public async Task ChangeSeats_ReadsDatabaseWithoutReadingCache(bool release)
     {
         // Arrange
         var totalSeats = 10;
@@ -169,19 +169,13 @@ public class EventServiceCachingTests : IDisposable
         var evt = NewEvent(totalSeats);
         if (release)
             evt.TryReserveSeats(reservedSeats).Should().BeTrue();
-        var expectedAvailableSeats = release ? totalSeats : totalSeats - reservedSeats;
-        var key = GetEventCacheKey(evt.Id);
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
-        var ttl = TimeSpan.FromMinutes(_options.RegularTTL);
-        // Низкоуровневая настройка заглушки, чтобы убедиться, что после изменения доступных мест в кеше будет сохранено правильное состояние мероприятия
-        _cache.Setup(c => c.StringGetAsync(key))
-            .ReturnsAsync((RedisValue)JsonSerializer.Serialize(evt));
-        _repository.Setup(r => r.UpdateAsync(evt.Id, It.Is<Event>(e => e.AvailableSeats == expectedAvailableSeats), token))
-            .Returns(Task.CompletedTask);
-        RedisValue cachedJson = RedisValue.Null;
-        _cache.Setup(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), (Expiration)ttl, default))
-            .Callback<RedisKey, RedisValue, Expiration, ValueCondition, CommandFlags>((_, value, _, _, _) => cachedJson = value)
+        var key = GetEventCacheKey(evt.Id);
+        var ttl = (Expiration)TimeSpan.FromMinutes(_options.RegularTTL);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.UpdateAsync(evt.Id, evt, token)).Returns(Task.CompletedTask);
+        _cache.Setup(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), ttl, default))
             .ReturnsAsync(true);
 
         // Act
@@ -191,12 +185,46 @@ public class EventServiceCachingTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        var cachedEvent = JsonSerializer.Deserialize<Event>(cachedJson.ToString());
-        cachedEvent.Should().BeEquivalentTo(evt, options => options.Excluding(e => e.AvailableSeats));
-        cachedEvent!.AvailableSeats.Should().Be(expectedAvailableSeats);
-        _repository.Verify(r => r.UpdateAsync(evt.Id, It.IsAny<Event>(), token), Times.Once);
-        _cache.Verify(c => c.StringGetAsync(key), Times.Once);
-        _cache.Verify(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), (Expiration)ttl, default), Times.Once);
+        _repository.Verify(r => r.GetForUpdateAsync(evt.Id, token), Times.Once);
+        _repository.Verify(r => r.UpdateAsync(evt.Id, evt, token), Times.Once);
+        _cache.Verify(c => c.StringGetAsync(It.IsAny<RedisKey>()), Times.Never);
+        _cache.Verify(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), ttl, default), Times.Once);
+        _cache.VerifyNoOtherCalls();
+        _repository.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Update_ReadsDatabaseWithoutReadingCache()
+    {
+        // Arrange
+        var totalSeats = 10;
+        var evt = NewEvent(totalSeats);
+        var request = new EventRequest
+        {
+            Id = evt.Id,
+            Title = "Обновленное мероприятие",
+            Description = "Обновленное описание",
+            StartAt = evt.StartAt,
+            EndAt = evt.EndAt,
+            TotalSeats = totalSeats
+        };
+        var key = GetEventCacheKey(evt.Id);
+        var token = TestContext.Current.CancellationToken;
+        var ttl = (Expiration)TimeSpan.FromMinutes(_options.RegularTTL);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.UpdateAsync(evt.Id, evt, token)).Returns(Task.CompletedTask);
+        _cache.Setup(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), ttl, default))
+            .ReturnsAsync(true);
+
+        // Act
+        await _service.UpdateAsync(evt.Id, request, token);
+
+        // Assert
+        _repository.Verify(r => r.GetForUpdateAsync(evt.Id, token), Times.Once);
+        _repository.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.UpdateAsync(evt.Id, evt, token), Times.Once);
+        _cache.Verify(c => c.StringGetAsync(It.IsAny<RedisKey>()), Times.Never);
+        _cache.Verify(c => c.StringSetAsync(key, It.IsAny<RedisValue>(), ttl, default), Times.Once);
         _cache.VerifyNoOtherCalls();
         _repository.VerifyNoOtherCalls();
     }

@@ -68,6 +68,29 @@ public class EventsController(IEventService _eventService, ILogger<EventsControl
         };
     }
 
+    /// <summary>
+    /// Получение мероприятия для обновления с чистыми данными из БД для целей администрирования.
+    /// </summary>
+    /// <param name="id">Идентификатор мероприятия</param>
+    /// <returns></returns>
+    /// <response code="200">Мероприятие найдено</response>
+    /// <response code="404">Мероприятия нет в базе</response>
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(ActionResult<Event>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Roles = nameof(UserRoleEnum.Admin))]
+    [HttpGet("{id:guid}/update")]
+    public async Task<ActionResult<ApiBaseResult>> GetForUpdate(Guid id, CancellationToken cancellationToken)
+    {
+        return new ApiResult<Event>
+        {
+            Data = await _eventService.GetForUpdateAsync(id, cancellationToken),
+            Success = true,
+            StatusCode = HttpStatusCode.OK,
+            Message = "Получаем мероприятие по индексу из коллекции"
+        };
+    }
+
     [Authorize(Roles = nameof(UserRoleEnum.Admin))]
     [HttpPost]
     public async Task<ActionResult<ApiResult>> Add([FromBody] EventRequest value, CancellationToken cancellationToken)

@@ -58,11 +58,19 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         return evt;
     }
 
+    public async Task<Event> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        ValidateGuid(id);
+        var evt = await _eventRepository.GetForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
+        return evt;
+    }
+
     public async Task UpdateAsync(Guid id, EventRequest obj, CancellationToken cancellationToken)
     {
         if (id != obj.Id)
             throw new ArgumentException("Id в URL не совпадает с Id в теле запроса.", nameof(obj.Id));
-        var evt = await _eventRepository.GetByIdAsync(id, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {id} не найдено");
         evt.UpdateDetails(obj.Title,
             obj.Description ?? string.Empty,
@@ -101,7 +109,7 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
         ValidateGuid(eventId);
         ValidateGuid(bookingId);
 
-        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {
@@ -124,7 +132,7 @@ internal class EventService(IEventRepository _eventRepository, IEventMessageBrok
 
     public async Task<bool> ReleaseSeats(Guid eventId, Guid bookingId, CancellationToken cancellationToken)
     {
-        var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken)
+        var evt = await _eventRepository.GetForUpdateAsync(eventId, cancellationToken)
             ?? throw new KeyNotFoundException($"Мероприятие {eventId} не найдено");
         if (evt.EndAt < DateTime.UtcNow)
         {

@@ -17,7 +17,11 @@ namespace EventPlatform.Events.Infrastructure.Repositories;
 /// <param name="connectionMultiplexer"></param>
 /// <param name="options"></param>
 /// <param name="logger"></param>
-public class EventCachedRepository(IEventRepository eventRepository, IConnectionMultiplexer connectionMultiplexer, IOptions<CacheOptions> options, ILogger<EventCachedRepository> logger) : IEventRepository
+public class EventCachedRepository(
+    IEventRepository eventRepository,
+    IConnectionMultiplexer connectionMultiplexer,
+    IOptions<CacheOptions> options,
+    ILogger<EventCachedRepository> logger) : IEventRepository
 {
     #region IEventRepository
 
@@ -49,6 +53,17 @@ public class EventCachedRepository(IEventRepository eventRepository, IConnection
         await SetEventByIdAsync(evt, cancellationToken);
 
         return evt;
+    }
+
+    /// <summary>
+    /// Получение мероприятия без кеша
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public async Task<Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await eventRepository.GetForUpdateAsync(id, cancellationToken);
     }
 
     public async Task<(IEnumerable<Event> events, int currentPage, int pageItems, int totalAmount)> GetPagedAsync(

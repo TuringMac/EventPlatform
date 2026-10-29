@@ -30,6 +30,12 @@ public class EventRepository(AppDbContext _context) : IEventRepository
         return await _context.Events.FindAsync([id], cancellationToken);
     }
 
+    public async Task<Event?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        // TODO: Использовать ReloadAsync для получения самых свежих данных
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
     public async Task<(IEnumerable<Event> events, int currentPage, int pageItems, int totalAmount)> GetPagedAsync(
         string? title,
         DateTime? from,

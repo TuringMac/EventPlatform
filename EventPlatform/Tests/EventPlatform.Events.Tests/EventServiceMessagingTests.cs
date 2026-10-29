@@ -39,7 +39,7 @@ public class EventServiceMessagingTests : IDisposable
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
         var observed = new List<string>();
-        _repository.Setup(r => r.GetByIdAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
         _repository.Setup(r => r.UpdateAsync(evt.Id, evt, token))
             .Callback(() => observed.Add("saved")).Returns(Task.CompletedTask);
         if (release)
@@ -74,7 +74,7 @@ public class EventServiceMessagingTests : IDisposable
         var seatsBefore = evt.AvailableSeats;
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
-        _repository.Setup(r => r.GetByIdAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
         _broker.Setup(b => b.SeatsReservationFailedAsync(evt.Id, bookingId, token)).Returns(Task.CompletedTask);
 
         // Act
@@ -98,7 +98,7 @@ public class EventServiceMessagingTests : IDisposable
         var seatsBefore = evt.AvailableSeats;
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
-        _repository.Setup(r => r.GetByIdAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
         _broker.Setup(b => b.SeatsReleaseFailedAsync(evt.Id, bookingId, token)).Returns(Task.CompletedTask);
 
         // Act
@@ -143,7 +143,7 @@ public class EventServiceMessagingTests : IDisposable
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
         var error = new InvalidOperationException("Ошибка сохранения мероприятия");
-        _repository.Setup(r => r.GetByIdAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
         _repository.Setup(r => r.UpdateAsync(evt.Id, evt, token)).ThrowsAsync(error);
 
         // Act
@@ -168,7 +168,7 @@ public class EventServiceMessagingTests : IDisposable
         var bookingId = Guid.NewGuid();
         var token = TestContext.Current.CancellationToken;
         var error = new InvalidOperationException("Ошибка отправки сообщения");
-        _repository.Setup(r => r.GetByIdAsync(evt.Id, token)).ReturnsAsync(evt);
+        _repository.Setup(r => r.GetForUpdateAsync(evt.Id, token)).ReturnsAsync(evt);
         if (release)
             _broker.Setup(b => b.SeatsReleasedAsync(evt.Id, bookingId, token)).ThrowsAsync(error);
         else
