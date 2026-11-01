@@ -40,7 +40,7 @@ services:
   # ─────────────────────────── Кеширование ───────────────────────────
   redis:
     image: redis:7.2-alpine
-    container_name: eventapi-redis
+    container_name: eventplatform-redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -49,6 +49,35 @@ services:
       timeout: 5s
       retries: 10
 
+  # ─────────────────────────── Мониторинг ───────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: eventplatform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: eventplatform-jaeger
+    ports:
+      - "16686:16686"   # UI
+      - "4318:4318"     # OTLP HTTP
+      - "4317:4317"     # OTLP gRPC
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: eventplatform-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+  
   # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
   users-db:
     image: postgres:18
@@ -116,6 +145,8 @@ services:
       JWT__Issuer: "EventPlatform.AuthServer"
       JWT__Audience: "EventPlatform.Api"
       JWT__Key: "long-hair-horse-eats-apples-under-the-tree"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     ports:
       - "5001:8080"
     depends_on:
@@ -140,6 +171,8 @@ services:
       JWT__Key: "long-hair-horse-eats-apples-under-the-tree"
       Redis__Host: redis
       Cache__Top10TTL: 2
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     ports:
       - "5002:8080"
     depends_on:
@@ -162,6 +195,8 @@ services:
       JWT__Issuer: "EventPlatform.AuthServer"
       JWT__Audience: "EventPlatform.Api"
       JWT__Key: "long-hair-horse-eats-apples-under-the-tree"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
     ports:
       - "5003:8080"
     depends_on:
@@ -174,3 +209,4 @@ volumes:
   users-db-data:
   events-db-data:
   bookings-db-data:
+  grafana-data:

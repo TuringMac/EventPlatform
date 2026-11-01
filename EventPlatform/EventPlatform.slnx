@@ -19,8 +19,10 @@
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../.dockerignore" />
+    <File Path="../dashboard.json" />
     <File Path="../docker-compose.yml" />
     <File Path="../Dockerfile" />
+    <File Path="../prometheus.yml" />
     <File Path="../README.md" />
     <File Path="Directory.Build.props" />
     <File Path="testEnvironments.json" />

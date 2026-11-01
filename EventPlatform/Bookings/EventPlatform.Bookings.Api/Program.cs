@@ -5,6 +5,12 @@ using EventPlatform.Bookings.Infrastructure;
 using EventPlatform.Bookings.Infrastructure.DbContexts;
 using EventPlatform.Common.Infrastructure.Options;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +40,49 @@ builder.Services.AddPresentation();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()    // Метрики HTTP-запросов
+            .AddRuntimeInstrumentation()       // Метрики среды выполнения (CPU, память, GC)
+            .AddPrometheusExporter();          // Экспорт в формате Prometheus
+    })
+    .WithTracing(tracerProviderBuilder =>
+    {
+        tracerProviderBuilder
+            // Задаём имя нашего сервиса в системе мониторинга
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("BookingsService"))
+            // Автоматически собираем все входящие HTTP-запросы к нашему API
+            .AddAspNetCoreInstrumentation()
+            // Автоматически отслеживаем все исходящие HTTP-вызовы через HttpClient
+            .AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
+            // Настраиваем экспорт по протоколу OTLP
+            .AddOtlpExporter(options =>
+            {
+                // Настройка пакетного процессора
+                // Отправка каждые 2 секунды
+                options.BatchExportProcessorOptions.ScheduledDelayMilliseconds = 2000;
+                // Тайм-аут ответа 3 секунды
+                options.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = 3000;
+            });
+    })
+    .WithLogging(logging =>
+        logging
+            .AddOtlpExporter(options =>
+            {
+                // Настройка пакетного процессора
+                // Отправка каждые 2 секунды
+                options.BatchExportProcessorOptions.ScheduledDelayMilliseconds = 2000;
+                // Тайм-аут ответа 3 секунды
+                options.BatchExportProcessorOptions.ExporterTimeoutMilliseconds = 3000;
+            })
+            .AddConsoleExporter());
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .WriteTo.Console(new CompactJsonFormatter()));
 
 if (builder.Environment.IsDevelopment())
 {
@@ -72,6 +121,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
 }
 
+app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 
 app.Run();
